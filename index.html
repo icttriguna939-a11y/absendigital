@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Absen Digital Siswa SMA Triguna 1956 Jakarta — presensi barcode masuk & pulang">
+  <meta name="theme-color" content="#1D4ED8">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231D4ED8' stroke='%23F5B301' stroke-width='4'/%3E%3Ctext x='32' y='42' font-size='28' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EAD%3C/text%3E%3C/svg%3E">
+  <title>Absen Digital — SMA Triguna 1956</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ═════════════ LOADER AWAL ═════════════ -->
+<div id="loader" class="loader">
+  <div class="loader-logo"><span class="ms">school</span></div>
+  <div class="spinner"></div>
+  <p>Memuat Absen Digital…</p>
+</div>
+
+<!-- ═════════════ HALAMAN MASUK ═════════════ -->
+<div id="viewLogin" class="view login" hidden>
+  <section class="login-hero">
+    <div class="hero-chip"><i class="dot-gold"></i> SISTEM PRESENSI BARCODE</div>
+    <div class="hero-main">
+      <div class="logo-ring big"><img class="app-logo" alt="Logo"><span class="ms logo-fallback">school</span></div>
+      <h1 class="app-name">Absen Digital</h1>
+      <h2 class="school-name gold">SMA Triguna 1956 Jakarta</h2>
+      <p class="hero-tag">Absensi cepat, akurat, tanpa titip absen</p>
+      <div class="hero-chips">
+        <span><span class="ms">bolt</span> Scan Barcode Instan</span>
+        <span><span class="ms">verified_user</span> Terintegrasi Guru Piket</span>
+        <span><span class="ms">monitoring</span> Rekap Real-time</span>
+      </div>
+    </div>
+    <p class="hero-foot"><span class="ms">location_on</span> Yayasan Triguna 1956 • Jakarta Selatan</p>
+    <svg class="hero-wave" viewBox="0 0 200 1000" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M200,0 L120,0 C40,180 190,320 110,500 C40,660 170,820 90,1000 L200,1000 Z" fill="currentColor"/>
+    </svg>
+  </section>
+
+  <section class="login-panel">
+    <div class="login-box">
+      <h2 class="login-title"><i class="bar"></i><span>Masuk ke Sistem</span></h2>
+      <p class="muted" id="loginSub">Masukkan username dan password Anda. Siswa: username adalah NIS.</p>
+
+      <div id="loginAlert" class="alert alert-danger" hidden>
+        <span class="ms">error</span>
+        <div><b>Gagal masuk</b><div id="loginAlertText"></div></div>
+        <button class="icon-btn sm" onclick="tutupAlertLogin()"><span class="ms">close</span></button>
+      </div>
+
+      <form id="formLogin" class="stack" onsubmit="return login(event)">
+        <label class="field">
+          <span>Username</span>
+          <div class="input-icon"><span class="ms">person</span><input type="text" id="loginUser" placeholder="Username atau NIS" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <div class="input-icon"><span class="ms">lock</span><input type="password" id="loginSandi" placeholder="Masukkan password" autocomplete="current-password" required>
+            <button type="button" class="icon-btn sm" onclick="lihatSandi('loginSandi', this)"><span class="ms">visibility</span></button></div>
+        </label>
+        <button class="btn btn-primary block lg" type="submit">Masuk <span class="ms">arrow_forward</span></button>
+        <div class="login-roles">
+          <span><span class="ms">shield_person</span> Admin &amp; Guru Piket: username dari admin</span>
+          <span><span class="ms">badge</span> Siswa: NIS, password awal = NIS</span>
+        </div>
+      </form>
+
+      <p class="login-help"><span class="ms">support_agent</span> Kendala login? Hubungi <b>Tim IT &amp; Tata Usaha SMA Triguna</b></p>
+    </div>
+  </section>
+</div>
+
+<!-- ═════════════ PANEL STAF ═════════════ -->
+<div id="viewStaf" class="view staf" hidden>
+  <aside id="sidebar" class="sidebar">
+    <div class="side-brand">
+      <div class="logo-ring sm"><img class="app-logo" alt=""><span class="ms logo-fallback">school</span></div>
+      <div><div class="side-title app-name">Absen Digital</div><div class="side-sub">SMA TRIGUNA 1956</div></div>
+    </div>
+    <nav class="side-nav" id="sideNav">
+      <a data-nav="dashboard"><span class="ms">space_dashboard</span><span>Dashboard</span></a>
+      <a data-nav="scan"><span class="ms">qr_code_scanner</span><span>Stasiun Scan</span></a>
+      <a data-nav="rekap"><span class="ms">calendar_today</span><span>Rekap Harian</span></a>
+      <a data-nav="pengajuan"><span class="ms">assignment_turned_in</span><span>Pengajuan Izin/Sakit</span><b class="nav-badge" id="badgePengajuan" hidden>0</b></a>
+      <a data-nav="bulanan" data-admin><span class="ms">bar_chart</span><span>Laporan Bulanan</span></a>
+      <a data-nav="siswa" data-admin><span class="ms">badge</span><span>Data Siswa &amp; Barcode</span></a>
+      <a data-nav="log" data-admin><span class="ms">history</span><span>Log Aktivitas</span><b class="nav-badge" id="badgeLog" hidden>0</b></a>
+      <a data-nav="pengaturan" data-admin><span class="ms">settings</span><span>Pengaturan</span></a>
+    </nav>
+    <div class="side-foot">
+      <a onclick="bukaUbahSandi()"><span class="ms">key</span><span>Ubah Password</span></a>
+      <a onclick="logout()" class="logout"><span class="ms">logout</span><span>Keluar</span></a>
+    </div>
+  </aside>
+  <div class="side-backdrop" onclick="toggleSidebar(false)"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" onclick="toggleSidebar()"><span class="ms">menu</span></button>
+      <div class="tb-title">
+        <div class="eyebrow">PANEL GURU PIKET &amp; ADMIN</div>
+        <div class="tb-date" id="tbTanggal">—</div>
+      </div>
+      <div class="tb-clock"><span class="ms">schedule</span><span id="tbJam" class="tnum">--:--:--</span> WIB</div>
+      <button class="icon-btn" onclick="toggleTema()" title="Mode gelap"><span class="ms" id="ikonTema">dark_mode</span></button>
+      <div class="tb-user">
+        <div class="avatar" id="tbAvatar">A</div>
+        <div class="tb-user-text"><b id="tbNama">—</b><span class="role-pill" id="tbPeran">—</span></div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ── DASHBOARD ── -->
+      <section id="sec-dashboard" class="section">
+        <div class="hero-banner">
+          <div>
+            <div class="chip-gold"><i class="dot-gold"></i> <span id="dbSesi">SESI AKTIF</span></div>
+            <h1 id="dbSapa">Selamat pagi</h1>
+            <p id="dbSub">Pusat pemantauan kehadiran siswa real-time.</p>
+          </div>
+          <div class="hero-actions">
+            <button class="btn btn-gold" onclick="navigateTo('scan')"><span class="ms">qr_code_scanner</span> Buka Stasiun Scan</button>
+            <button class="btn btn-glass" data-admin onclick="navigateTo('pengaturan')"><span class="ms">tune</span> Atur Jam &amp; Aturan</button>
+          </div>
+        </div>
+        <div class="stat-grid five" id="dbStat"></div>
+        <div class="grid-2-1">
+          <div class="card">
+            <div class="card-head"><div><h3>Kehadiran Hari Ini per Tingkat</h3><p class="muted small">Distribusi status presensi tingkat X, XI, dan XII</p></div></div>
+            <div class="legend" id="dbLegend"></div>
+            <div id="dbTingkat"></div>
+            <div class="card-foot"><span id="dbTertinggi" class="small"></span><a class="link" onclick="navigateTo('rekap')">Detail rekap kelas <span class="ms">chevron_right</span></a></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h3>Komposisi Status</h3><p class="muted small">Persentase presensi hari ini</p></div></div>
+            <div class="donut-wrap"><canvas id="dbDonut" height="220"></canvas><div class="donut-center"><b id="dbTotal">0</b><span>TOTAL SISWA</span></div></div>
+            <div class="mini-legend" id="dbDonutLegend"></div>
+          </div>
+        </div>
+        <div class="grid-2-1">
+          <div class="card">
+            <div class="card-head">
+              <div class="row gap"><div class="icon-tile blue"><span class="ms">pending_actions</span></div><div><h3>Pengajuan Menunggu Persetujuan</h3><p class="muted small">Surat izin &amp; sakit dari portal siswa</p></div></div>
+              <span class="pill pill-tunggu" id="dbJumlahTunggu">0 Menunggu</span>
+            </div>
+            <div id="dbMenunggu"></div>
+            <div class="card-foot"><span class="small muted" id="dbMenungguInfo"></span><a class="link" onclick="navigateTo('pengajuan')">Buka semua <span class="ms">chevron_right</span></a></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div class="row gap"><div class="icon-tile orange"><span class="ms">notification_important</span></div><div><h3>Kejanggalan Scan</h3><p class="muted small">Kartu sama di perangkat berbeda</p></div></div>
+            </div>
+            <div id="dbAnomali"></div>
+          </div>
+        </div>
+        <div class="info-strip" id="dbNotif"></div>
+      </section>
+
+      <!-- ── STASIUN SCAN ── -->
+      <section id="sec-scan" class="section">
+        <div class="card page-head">
+          <div>
+            <div class="crumb">Terminal Gerbang <span class="ms">chevron_right</span> <b>Piket Harian</b></div>
+            <h1>Stasiun Pemindai Barcode</h1>
+            <p class="muted small"><span class="ms">schedule</span> Mode otomatis sesuai jam server (<b class="tnum" id="scJamServer">--:--</b>)</p>
+          </div>
+          <div class="stack-r">
+            <div class="mode-switch" id="modeSwitch">
+              <button data-mode="MASUK" class="active"><span class="ms">wb_sunny</span> SCAN MASUK <small id="scRentangMasuk"></small></button>
+              <button data-mode="PULANG"><span class="ms">bedtime</span> SCAN PULANG <small id="scRentangPulang"></small></button>
+            </div>
+            <div class="row gap">
+              <button class="btn btn-soft" onclick="bukaMonitor()"><span class="ms">tv</span> Layar Monitor Siswa</button>
+              <button class="icon-btn boxed" onclick="aturPerangkat()" title="Nama perangkat"><span class="ms">tune</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div id="scLibur" class="alert alert-warn" hidden><span class="ms">event_busy</span><div><b>Bukan hari sekolah</b><div id="scLiburText"></div></div></div>
+
+        <div class="grid-2-1">
+          <div class="stack">
+            <div class="card">
+              <div class="row between wrap">
+                <span class="pill pill-hadir"><i class="dot"></i> Pemindai siap menerima input barcode</span>
+                <span class="small muted"><span class="ms">devices</span> <b id="scPerangkat">Kiosk 01</b></span>
+              </div>
+              <label class="small strong mt">Input Kode Barcode Kartu Pelajar</label>
+              <form class="scan-input" onsubmit="return kirimScan(event)">
+                <span class="ms">barcode_reader</span>
+                <input id="scanInput" autocomplete="off" spellcheck="false" placeholder="Tempelkan kartu ke pemindai…">
+                <button class="btn btn-primary" type="submit">Proses <span class="ms">arrow_forward</span></button>
+              </form>
+              <div class="row gap small muted mt">
+                <span><kbd>F2</kbd> Reset</span><span><kbd>F9</kbd> Catat manual</span>
+                <span class="grow"></span><span id="scSuaraInfo" class="link" onclick="toggleSuara()"><span class="ms">volume_up</span> Suara aktif</span>
+              </div>
+            </div>
+            <div class="card" id="scHasil">
+              <div class="empty"><span class="ms">qr_code_2</span><p>Belum ada scan. Hasil verifikasi akan tampil di sini.</p></div>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="stat-grid three" id="scStat"></div>
+            <div class="card">
+              <div class="row between"><b>Progres Kehadiran Pagi</b><span class="pill pill-izin" id="scPersen">0%</span></div>
+              <div class="progress mt"><i class="p-hadir" id="scBarHadir"></i><i class="p-telat" id="scBarTelat"></i><i class="p-izin" id="scBarIzin"></i></div>
+              <div class="small muted mt" id="scBarKet"></div>
+            </div>
+            <div class="card">
+              <div class="row between"><h3><span class="ms">history</span> Aktivitas Scan Terkini</h3><span class="small" style="color:var(--hadir)">● Real-time</span></div>
+              <div id="scFeed" class="feed"></div>
+            </div>
+            <div class="card warn-card">
+              <span class="ms">help</span>
+              <div><b>Kendala Kartu Pelajar?</b><p class="small">Kartu rusak, lupa, atau barcode pudar?</p><a class="link" onclick="bukaManual()">Buka form presensi manual <span class="ms">open_in_new</span></a></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── REKAP HARIAN ── -->
+      <section id="sec-rekap" class="section">
+        <div class="page-title">
+          <div><span class="chip-blue">LAPORAN PRESENSI HARIAN</span><h1>Rekap Presensi Harian Siswa</h1></div>
+          <div class="stack-r">
+            <div class="date-nav">
+              <button class="icon-btn sm" onclick="geserTanggal(-1)"><span class="ms">chevron_left</span></button>
+              <input type="date" id="rkTanggal" onchange="muatRekap()">
+              <button class="icon-btn sm" onclick="geserTanggal(1)"><span class="ms">chevron_right</span></button>
+            </div>
+            <button class="btn btn-primary" onclick="ekspor('harian')"><span class="ms">table_view</span> Unduh Excel</button>
+          </div>
+        </div>
+        <div class="card filter-bar">
+          <div class="input-icon grow"><span class="ms">search</span><input id="rkCari" placeholder="Cari nama siswa atau NIS" oninput="renderRekap()"></div>
+          <select id="rkKelas" onchange="renderRekap()"><option value="">Semua Kelas</option></select>
+          <select id="rkStatus" onchange="renderRekap()"><option value="">Semua Status</option></select>
+          <button class="btn btn-ghost" onclick="resetFilterRekap()"><span class="ms">restart_alt</span> Reset</button>
+        </div>
+        <div class="chip-row" id="rkChips"></div>
+        <div class="stat-grid three compact" id="rkRingkas"></div>
+        <div class="card flush">
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>No</th><th>Siswa</th><th>Kelas</th><th>Masuk</th><th>Pulang</th><th>Metode</th><th>Status</th><th>Keterangan</th><th></th></tr></thead>
+              <tbody id="rkBody"></tbody>
+            </table>
+          </div>
+          <div class="pager" id="rkPager"></div>
+        </div>
+      </section>
+
+      <!-- ── PENGAJUAN ── -->
+      <section id="sec-pengajuan" class="section">
+        <div class="page-title">
+          <div><span class="chip-gold-solid">VERIFIKASI PRESENSI</span><h1>Tinjauan Pengajuan Izin &amp; Sakit</h1>
+            <p class="muted">Verifikasi surat izin dan surat dokter yang diunggah siswa.</p></div>
+        </div>
+        <div class="tabs" id="pjTabs">
+          <button data-tab="Menunggu" class="active">Menunggu Verifikasi <b class="count gold" id="pjNMenunggu">0</b></button>
+          <button data-tab="Disetujui">Disetujui <b class="count" id="pjNDisetujui">0</b></button>
+          <button data-tab="Ditolak">Ditolak <b class="count red" id="pjNDitolak">0</b></button>
+        </div>
+        <div class="split">
+          <div class="stack">
+            <div class="card">
+              <div class="input-icon"><span class="ms">search</span><input id="pjCari" placeholder="Cari nama siswa, NIS, atau alasan…" oninput="renderPengajuanList()"></div>
+              <div class="row gap mt small"><b class="muted">TINGKAT:</b>
+                <div class="chips-sm" id="pjTingkat">
+                  <button data-t="" class="active">Semua</button><button data-t="X">Kelas X</button><button data-t="XI">Kelas XI</button><button data-t="XII">Kelas XII</button>
+                </div>
+              </div>
+            </div>
+            <div id="pjList" class="stack"></div>
+          </div>
+          <div class="card" id="pjDetail">
+            <div class="empty"><span class="ms">inbox</span><p>Pilih pengajuan di sebelah kiri untuk ditinjau.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── LAPORAN BULANAN (Admin) ── -->
+      <section id="sec-bulanan" class="section">
+        <div class="page-title">
+          <div><span class="chip-blue">LAPORAN BULANAN</span><h1>Rekap Bulanan &amp; Grafik</h1></div>
+          <div class="stack-r">
+            <input type="month" id="blBulan" onchange="muatBulanan()">
+            <select id="blKelas" onchange="muatBulanan()"><option value="">Semua kelas</option></select>
+            <button class="btn btn-primary" onclick="ekspor('bulanan')"><span class="ms">table_view</span> Unduh Excel</button>
+          </div>
+        </div>
+        <div class="stat-grid four" id="blStat"></div>
+        <div class="card">
+          <div class="card-head">
+            <div><h3 id="blJudulGrafik">Kehadiran per Kelas</h3><p class="muted small">Jumlah status per kelas dalam bulan terpilih</p></div>
+            <div class="seg sm" id="blTipe"><button class="seg-btn active" data-tipe="bar">Batang</button><button class="seg-btn" data-tipe="line">Garis</button></div>
+          </div>
+          <div class="chart-box"><canvas id="blChartKelas"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h3>Tren Kehadiran Harian (%)</h3><p class="muted small">Persentase hadir + terlambat setiap hari sekolah</p></div></div>
+          <div class="chart-box sm"><canvas id="blChartTren"></canvas></div>
+        </div>
+        <div class="card flush">
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Kelas</th><th>Walas</th><th class="num">Siswa</th><th class="num">Hadir</th><th class="num">Terlambat</th><th class="num">Izin</th><th class="num">Sakit</th><th class="num">Alpa</th><th>% Kehadiran</th></tr></thead>
+              <tbody id="blBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── DATA SISWA (Admin) ── -->
+      <section id="sec-siswa" class="section">
+        <div class="page-title">
+          <div><span class="chip-blue">MASTER DATA</span><h1>Data Siswa &amp; Barcode</h1></div>
+          <div class="stack-r">
+            <button class="btn btn-outline" onclick="sinkronSiswa()"><span class="ms">sync</span> Impor dari Sheet</button>
+            <button class="btn btn-outline" onclick="bukaCetak()"><span class="ms">print</span> Cetak Kartu</button>
+            <button class="btn btn-primary" onclick="formSiswa()"><span class="ms">person_add</span> Tambah Siswa</button>
+          </div>
+        </div>
+        <div class="card filter-bar">
+          <div class="input-icon grow"><span class="ms">search</span><input id="ssCari" placeholder="Cari nama, NIS, atau kode barcode" oninput="renderSiswa()"></div>
+          <select id="ssKelas" onchange="renderSiswa()"><option value="">Semua Kelas</option></select>
+          <select id="ssStatus" onchange="renderSiswa()"><option value="">Semua Status</option><option>Aktif</option><option>Nonaktif</option></select>
+        </div>
+        <div class="card flush">
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th><input type="checkbox" id="ssSemua" onchange="pilihSemuaSiswa(this.checked)"></th><th>Siswa</th><th>Kelas</th><th>Wali Kelas</th><th>Kode Barcode</th><th>Status</th><th></th></tr></thead>
+              <tbody id="ssBody"></tbody>
+            </table>
+          </div>
+          <div class="pager" id="ssPager"></div>
+        </div>
+        <div class="bulk-bar" id="ssBulk" hidden>
+          <b id="ssBulkN">0 dipilih</b>
+          <button class="btn btn-gold sm" onclick="bukaCetak(true)"><span class="ms">print</span> Cetak kartu terpilih</button>
+          <button class="btn btn-glass sm" onclick="pilihSemuaSiswa(false)">Batal</button>
+        </div>
+      </section>
+
+      <!-- ── LOG (Admin) ── -->
+      <section id="sec-log" class="section">
+        <div class="page-title">
+          <div><span class="chip-blue">AUDIT</span><h1>Log Aktivitas</h1></div>
+          <div class="stack-r">
+            <input type="date" id="lgDari" onchange="muatLog()"><span class="muted">s/d</span><input type="date" id="lgSampai" onchange="muatLog()">
+            <select id="lgJenis" onchange="muatLog()"><option value="">Semua jenis</option><option>Scan</option><option>Ubah data</option><option>Kejanggalan</option><option>Email</option><option>Login</option></select>
+          </div>
+        </div>
+        <div id="lgAnomali"></div>
+        <div class="card flush">
+          <div class="table-wrap">
+            <table class="table compact">
+              <thead><tr><th>Waktu</th><th>Pelaku</th><th>Jenis</th><th>Detail</th><th>Perangkat</th></tr></thead>
+              <tbody id="lgBody"></tbody>
+            </table>
+          </div>
+          <div class="small muted pad" id="lgInfo"></div>
+        </div>
+      </section>
+
+      <!-- ── PENGATURAN (Admin) ── -->
+      <section id="sec-pengaturan" class="section">
+        <div class="page-title"><div><span class="chip-blue">ADMIN</span><h1>Pengaturan</h1></div></div>
+        <div class="tabs" id="pgTabs">
+          <button data-tab="pengguna" class="active">Pengguna</button>
+          <button data-tab="jam">Jam &amp; Aturan</button>
+          <button data-tab="notif">Notifikasi</button>
+          <button data-tab="identitas">Identitas &amp; Logo</button>
+        </div>
+        <div id="pg-pengguna" class="pg-pane">
+          <div class="card">
+            <div class="card-head"><div><h3>Admin &amp; Guru Piket</h3><p class="muted small">Akun yang boleh masuk ke panel staf</p></div>
+              <button class="btn btn-primary" onclick="formPengguna()"><span class="ms">person_add</span> Tambah Pengguna</button></div>
+            <div class="table-wrap"><table class="table"><thead><tr><th>Username</th><th>Nama</th><th>Peran</th><th>Password</th><th></th></tr></thead><tbody id="pgPengguna"></tbody></table></div>
+          </div>
+        </div>
+        <div id="pg-jam" class="pg-pane" hidden>
+          <div class="card">
+            <h3>Jam Presensi</h3>
+            <div class="form-grid mt">
+              <label class="field"><span>Scan masuk mulai</span><input type="time" id="pgJamMasukMulai"></label>
+              <label class="field"><span>Batas tepat waktu</span><input type="time" id="pgBatasTepat"><small class="muted">Scan setelah jam ini = Terlambat</small></label>
+              <label class="field"><span>Scan pulang mulai</span><input type="time" id="pgJamPulangMulai"><small class="muted">Mode otomatis berganti ke PULANG</small></label>
+              <label class="field"><span>Scan pulang selesai</span><input type="time" id="pgJamPulangSelesai"></label>
+            </div>
+            <h3 class="mt-lg">Hari Sekolah</h3>
+            <div class="chips-sm mt" id="pgHari"></div>
+            <div class="row end mt-lg"><button class="btn btn-primary" onclick="simpanPengaturan()"><span class="ms">save</span> Simpan Pengaturan</button></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h3>Hari Libur</h3><p class="muted small">Tidak ada scan dan tidak ada status Alpa pada tanggal ini</p></div></div>
+            <form class="row gap wrap" onsubmit="return tambahLibur(event)">
+              <input type="date" id="pgLiburTgl" required><input id="pgLiburKet" placeholder="Keterangan, mis. Maulid Nabi" class="grow" required>
+              <button class="btn btn-outline" type="submit"><span class="ms">add</span> Tambah</button>
+            </form>
+            <div id="pgLibur" class="mt"></div>
+          </div>
+        </div>
+        <div id="pg-notif" class="pg-pane" hidden>
+          <div class="card">
+            <h3>Notifikasi Email ke Wali Kelas</h3>
+            <p class="muted small">Setiap hari sekolah pada jam ini, siswa tanpa scan &amp; tanpa keterangan ditandai Alpa, lalu satu email dikirim ke setiap wali kelas.</p>
+            <div class="form-grid mt">
+              <label class="switch-field"><input type="checkbox" id="pgNotifAktif"><i></i><span>Kirim email ke walas</span></label>
+              <label class="field"><span>Jadwal kirim</span><input type="time" id="pgJamNotif"></label>
+            </div>
+            <div class="info-strip mt" id="pgNotifInfo"></div>
+            <div class="row gap wrap mt-lg">
+              <button class="btn btn-primary" onclick="simpanPengaturan()"><span class="ms">save</span> Simpan</button>
+              <button class="btn btn-outline" onclick="kirimEmailUji()"><span class="ms">forward_to_inbox</span> Kirim email uji ke pemilik akun</button>
+              <button class="btn btn-ghost" onclick="kirimNotifSekarang()"><span class="ms">send</span> Jalankan sekarang</button>
+            </div>
+          </div>
+        </div>
+        <div id="pg-identitas" class="pg-pane" hidden>
+          <div class="card">
+            <h3>Identitas Aplikasi</h3>
+            <div class="form-grid mt">
+              <label class="field"><span>Nama aplikasi</span><input id="pgNamaAplikasi" maxlength="40"></label>
+              <label class="field"><span>Nama sekolah</span><input id="pgNamaSekolah" maxlength="60"></label>
+            </div>
+            <h3 class="mt-lg">Logo Sekolah</h3>
+            <div class="row gap mt">
+              <div class="logo-ring big"><img class="app-logo" alt=""><span class="ms logo-fallback">school</span></div>
+              <label class="btn btn-outline"><span class="ms">upload</span> Unggah logo (PNG/JPG)<input type="file" accept="image/png,image/jpeg,image/svg+xml" hidden onchange="unggahLogo(this)"></label>
+            </div>
+            <div class="row gap wrap mt-lg">
+              <button class="btn btn-primary" onclick="simpanPengaturan()"><span class="ms">save</span> Simpan</button>
+              <a class="btn btn-ghost" id="pgLinkDb" target="_blank"><span class="ms">table</span> Buka database</a>
+              <a class="btn btn-ghost" id="pgLinkFolder" target="_blank"><span class="ms">folder</span> Buka folder Drive</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ═════════════ PORTAL SISWA ═════════════ -->
+<div id="viewSiswa" class="view portal" hidden>
+  <header class="portal-head">
+    <div class="portal-bar">
+      <div class="row gap"><div class="logo-ring xs"><img class="app-logo" alt=""><span class="ms logo-fallback">school</span></div><b>Portal Siswa</b></div>
+      <div class="row gap">
+        <button class="icon-btn light" onclick="toggleTema()"><span class="ms">dark_mode</span></button>
+        <button class="icon-btn light" onclick="bukaUbahSandi()" title="Ubah sandi"><span class="ms">key</span></button>
+        <button class="icon-btn light" onclick="logout()" title="Keluar"><span class="ms">logout</span></button>
+      </div>
+    </div>
+    <div class="portal-profile">
+      <div class="avatar xl" id="psFoto"></div>
+      <div><h2 id="psNama">—</h2><p id="psInfo">—</p></div>
+    </div>
+    <svg class="portal-wave" viewBox="0 0 400 40" preserveAspectRatio="none"><path d="M0,20 C100,45 300,-5 400,20 L400,40 L0,40 Z" fill="currentColor"/></svg>
+  </header>
+  <main class="portal-main">
+    <section id="ps-beranda" class="section active">
+      <div id="psSandiAwal" class="alert alert-warn" hidden><span class="ms">key</span><div><b>Password Anda masih NIS.</b><div>Segera ganti agar akun tidak dipakai orang lain. <a class="link" onclick="bukaUbahSandi()">Ganti sekarang</a></div></div></div>
+      <div class="card today-card" id="psHariIni"></div>
+      <div class="chip-scroll" id="psStat"></div>
+      <div class="card">
+        <div class="card-head"><h3>Status Pengajuan</h3><button class="btn btn-soft sm" onclick="navigateSiswa('ajukan')"><span class="ms">add</span> Ajukan</button></div>
+        <div id="psPengajuan" class="stack"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Riwayat Absen</h3><input type="month" id="psBulan" onchange="muatBeranda()"></div>
+        <div id="psRiwayat" class="stack-sm"></div>
+      </div>
+    </section>
+    <section id="ps-ajukan" class="section">
+      <div class="card">
+        <div class="row gap"><button class="icon-btn" onclick="navigateSiswa('beranda')"><span class="ms">arrow_back</span></button><h2>Ajukan Izin / Sakit</h2></div>
+        <form id="formAjukan" class="stack mt" onsubmit="return kirimAjukan(event)">
+          <div class="choice-grid">
+            <label class="choice izin"><input type="radio" name="jenis" value="Izin" required><span class="ms">event_available</span><b>Izin</b><small>Keperluan keluarga, lomba, dll.</small></label>
+            <label class="choice sakit"><input type="radio" name="jenis" value="Sakit"><span class="ms">medical_services</span><b>Sakit</b><small>Dengan surat dokter/orang tua</small></label>
+          </div>
+          <div class="form-grid">
+            <label class="field"><span>Dari tanggal</span><input type="date" id="ajDari" required></label>
+            <label class="field"><span>Sampai tanggal</span><input type="date" id="ajSampai" required></label>
+          </div>
+          <label class="field"><span>Alasan singkat</span><textarea id="ajAlasan" maxlength="300" rows="3" required placeholder="Contoh: Demam tinggi, istirahat sesuai anjuran dokter"></textarea><small class="muted right" id="ajHitung">0/300</small></label>
+          <label class="upload-zone" id="ajZona">
+            <input type="file" id="ajFile" accept="image/*" capture="environment" hidden onchange="pilihSurat(this)">
+            <div id="ajPreview"><div class="icon-tile blue lg"><span class="ms">photo_camera</span></div><b>Ambil foto / pilih file surat</b><small class="muted">Foto dikompres otomatis sebelum dikirim</small></div>
+          </label>
+          <button class="btn btn-primary block lg" type="submit" id="ajKirim"><span class="ms">send</span> Kirim Pengajuan</button>
+        </form>
+      </div>
+    </section>
+  </main>
+  <nav class="bottom-nav">
+    <a data-ps="beranda" class="active"><span class="ms">home</span>Beranda</a>
+    <a data-ps="ajukan"><span class="ms">add_circle</span>Ajukan</a>
+  </nav>
+</div>
+
+<!-- ═════════════ LAYAR MONITOR SAMBUTAN ═════════════ -->
+<div id="monitor" class="monitor" hidden>
+  <input id="monInput" class="mon-input" autocomplete="off" aria-label="Input pemindai">
+  <header class="mon-head">
+    <div class="row gap">
+      <div class="logo-ring md"><img class="app-logo" alt=""><span class="ms logo-fallback">school</span></div>
+      <div><div class="mon-school school-upper">SMA TRIGUNA 1956 JAKARTA</div><div class="mon-sub">SISTEM PRESENSI OTOMATIS &amp; GERBANG PINTAR</div></div>
+    </div>
+    <div class="row gap">
+      <span class="mon-kiosk"><span class="ms">door_front</span> <span id="monKiosk">GERBANG UTAMA</span> — <span id="monMode">MASUK</span></span>
+      <span class="mon-date"><span class="ms">calendar_today</span> <span id="monTanggal"></span></span>
+    </div>
+  </header>
+
+  <div class="mon-body">
+    <!-- Siap scan -->
+    <div class="mon-state" id="monIdle">
+      <div class="logo-ring giant"><img class="app-logo" alt=""><span class="ms logo-fallback">school</span></div>
+      <h1 class="mon-title school-upper">SMA TRIGUNA 1956 JAKARTA</h1>
+      <div class="mon-prompt"><span class="ms pulse">barcode_scanner</span> Silakan scan kartu Anda</div>
+    </div>
+    <!-- Sukses / error -->
+    <div class="mon-card" id="monCard" hidden>
+      <div class="mon-card-tab"></div>
+      <div class="mon-photo" id="monFoto"></div>
+      <div class="mon-greet" id="monSapa">Selamat Datang,</div>
+      <div class="mon-name" id="monNama">NAMA SISWA</div>
+      <div class="mon-meta" id="monMeta"></div>
+      <div class="mon-status" id="monStatus"></div>
+      <div class="mon-count">
+        <div class="row between small"><span id="monInfo">Silakan masuk</span><span>Layar kembali siap dalam <b id="monDetik">5</b> detik</span></div>
+        <div class="mon-bar"><i id="monBar"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mon-clock tnum" id="monJam"><span>00</span><i>:</i><span>00</span><i>:</i><span class="sec">00</span><small>WIB</small></div>
+  <div class="mon-foot">
+    <span class="mon-pill dark"><span class="ms">schedule</span> Batas jam masuk tepat waktu: <b id="monBatas">07:00</b> WIB</span>
+    <span class="mon-pill">Tetap tertib, jaga kebersihan lingkungan, dan awali hari dengan senyuman!</span>
+  </div>
+  <button class="mon-exit" onclick="tutupMonitor()" title="Tutup monitor (Esc)"><span class="ms">close_fullscreen</span></button>
+</div>
+
+<!-- ═════════════ MODAL, TOAST, CETAK ═════════════ -->
+<div id="modal" class="modal" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true">
+    <button class="icon-btn modal-x" onclick="tutupModal()"><span class="ms">close</span></button>
+    <div id="modalIsi"></div>
+  </div>
+</div>
+<div id="toasts" class="toasts"></div>
+<div id="printArea" class="print-area"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
