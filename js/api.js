@@ -12,8 +12,19 @@
 const API_TIMEOUT_MS = 60000;       // permintaan biasa
 const API_TIMEOUT_UNGGAH_MS = 120000; // permintaan berisi foto
 
+/** URL /exec yang dibaca dari js/config.js (spasi/kutip berlebih dibuang). */
+function gasUrl() {
+  return typeof GAS_URL === 'string' ? GAS_URL.trim().replace(/^['"]|['"]$/g, '') : '';
+}
+
+/**
+ * Terima semua bentuk URL Web App Apps Script:
+ *   https://script.google.com/macros/s/ID/exec
+ *   https://script.google.com/a/macros/domain-sekolah/s/ID/exec   (akun Google Workspace)
+ */
 function gasUrlSiap() {
-  return typeof GAS_URL === 'string' && /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(GAS_URL.trim()) && !/XXXX/.test(GAS_URL);
+  const u = gasUrl();
+  return /^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[A-Za-z0-9_-]{20,}\/exec\/?$/.test(u) && !/XXXX/.test(u);
 }
 
 /**
@@ -22,7 +33,10 @@ function gasUrlSiap() {
  */
 async function call(action, ...args) {
   if (!gasUrlSiap()) {
-    throw new Error('Alamat server belum diatur. Isi GAS_URL di file js/config.js dengan URL /exec dari Apps Script.');
+    const u = gasUrl();
+    if (!u || /XXXX/.test(u)) throw new Error('Alamat server belum diatur. Isi GAS_URL di file js/config.js dengan URL /exec dari Apps Script, lalu push ulang.');
+    if (/\/dev\/?$/.test(u)) throw new Error('URL di js/config.js berakhiran /dev. Gunakan URL yang berakhiran /exec (dari Terapkan → Kelola deployment).');
+    throw new Error('Format URL di js/config.js tidak dikenali: ' + u + ' — harus berawalan https://script.google.com/ dan berakhiran /exec.');
   }
   const body = JSON.stringify({ action, args });
   const ctrl = new AbortController();
@@ -30,7 +44,7 @@ async function call(action, ...args) {
 
   let res;
   try {
-    res = await fetch(GAS_URL.trim(), {
+    res = await fetch(gasUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body,
