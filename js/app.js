@@ -18,7 +18,7 @@ const PER_HAL = 25;
 
 const S = {
   token: '', sesi: null, app: {}, offset: 0, section: '',
-  scan: { mode: 'MASUK', auto: true, aturan: null, siswa: null, antrean: Promise.resolve(), monitor: false, timer: null, suara: true },
+  scan: { mode: 'MASUK', auto: true, aturan: null, siswa: null, antrean: Promise.resolve(), suara: true },
   rekap: { data: null, page: 1, chip: '' },
   pj: { data: null, tab: 'Menunggu', sel: null, tingkat: '', gambar: {} },
   bl: { data: null, tipe: 'bar' },
@@ -106,7 +106,7 @@ function modal(html, lebar) {
 function tutupModal() {
   $('modal').hidden = true;
   $('modalIsi').innerHTML = '';
-  if (S.section === 'scan' && !S.scan.monitor) fokusScan();
+  if (S.section === 'scan') fokusScan();
 }
 function konfirmasi(judul, pesan, label, tipe) {
   return new Promise((resolve) => {
@@ -190,23 +190,14 @@ window.addEventListener('load', () => {
 });
 
 function terapkanApp(app) {
-  S.app = app || {};
-  const nama = S.app.namaAplikasi || 'Absen Digital';
-  const sek = S.app.namaSekolah || 'SMA Triguna 1956 Jakarta';
-  $$('.app-name').forEach((el) => { el.textContent = nama; });
-  $$('.school-name').forEach((el) => { el.textContent = sek; });
-  $$('.school-upper').forEach((el) => { el.textContent = sek.toUpperCase(); });
-  $$('.logo-ring').forEach((el) => {
-    const img = el.querySelector('img');
-    if (S.app.logo) img.src = S.app.logo;
-    el.classList.toggle('has-logo', !!S.app.logo);
-  });
-  document.title = nama + ' — ' + sek;
+  S.app = Object.assign({}, brandBaca() || {}, app || {});
+  brandSimpan(S.app);
+  terapkanBrand(S.app); // nama, logo, favicon, layar loading (lihat js/api.js)
+  document.title = (S.app.namaAplikasi || 'Absen Digital') + ' — ' + (S.app.namaSekolah || 'SMA Triguna 1956 Jakarta');
 }
 
 function tampilLogin() {
   ['viewStaf', 'viewSiswa'].forEach((v) => { $(v).hidden = true; });
-  $('monitor').hidden = true;
   $('viewLogin').hidden = false;
   tutupAlertLogin();
   setTimeout(() => $('loginUser').focus(), 50);
@@ -314,11 +305,6 @@ function detik() {
       if (m !== S.scan.mode) setMode(m, true);
     }
   }
-  if (S.scan.monitor) {
-    const p = j.split(':');
-    $('monJam').innerHTML = `<span>${p[0]}</span><i>:</i><span>${p[1]}</span><i>:</i><span class="sec">${p[2]}</span><small>WIB</small>`;
-    $('monTanggal').textContent = tglPanjang(tglStr(d));
-  }
 }
 
 function pasangEvent() {
@@ -332,24 +318,17 @@ function pasangEvent() {
   $('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') tutupModal(); });
   $('ajAlasan').addEventListener('input', () => { $('ajHitung').textContent = $('ajAlasan').value.length + '/300'; });
 
-  // Pemindai barcode USB bekerja seperti keyboard: ketik kode lalu Enter.
-  $('monInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); const v = $('monInput').value; $('monInput').value = ''; prosesScan(v, S.scan.perangkat); }
-    if (e.key === 'Escape') tutupMonitor();
-  });
-  $('monitor').addEventListener('click', () => $('monInput').focus());
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !$('modal').hidden) tutupModal();
-    if (S.section !== 'scan' || S.scan.monitor || !$('modal').hidden) return;
+    if (S.section !== 'scan' || !$('modal').hidden) return;
     if (e.key === 'F2') { e.preventDefault(); $('scanInput').value = ''; fokusScan(); }
     if (e.key === 'F9') { e.preventDefault(); bukaManual(); }
   });
   // Klik area kosong di stasiun scan → kursor kembali ke input barcode
   document.addEventListener('click', (e) => {
-    if (S.section !== 'scan' || S.scan.monitor || !$('modal').hidden) return;
+    if (S.section !== 'scan' || !$('modal').hidden) return;
     if (!e.target.closest('input,select,textarea,button,a,label')) fokusScan();
   });
-  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && S.scan.monitor) $('monInput').focus(); });
 }
 
 // ════════════════════════════════════════════════════════
@@ -439,7 +418,6 @@ function initScan() {
   S.scan.perangkat = simpan.get('perangkat', 'Kiosk 01');
   S.scan.suara = simpan.get('suara', '1') === '1';
   $('scPerangkat').textContent = S.scan.perangkat;
-  $('monKiosk').textContent = S.scan.perangkat.toUpperCase();
   $('scSuaraInfo').innerHTML = S.scan.suara ? '<span class="ms">volume_up</span> Suara aktif' : '<span class="ms">volume_off</span> Suara mati';
   fokusScan();
   call('apiScanInit', S.token).then((d) => {
@@ -447,7 +425,6 @@ function initScan() {
     S.scan.aturan = d.aturan;
     $('scRentangMasuk').textContent = `(${d.aturan.jamMasukMulai}–${d.aturan.batasTepat})`;
     $('scRentangPulang').textContent = `(${d.aturan.jamPulangMulai}–${d.aturan.jamPulangSelesai})`;
-    $('monBatas').textContent = d.aturan.batasTepat;
     $('scLibur').hidden = d.hariSekolah;
     $('scLiburText').textContent = d.keteranganLibur ? d.keteranganLibur + '. Scan tidak akan dicatat.' : 'Hari ini tidak termasuk hari sekolah. Scan tidak akan dicatat.';
     S.scan.auto = true;
@@ -455,13 +432,12 @@ function initScan() {
   }).catch(gagal);
 }
 
-function fokusScan() { setTimeout(() => { if (S.section === 'scan' && !S.scan.monitor && $('modal').hidden) $('scanInput').focus(); }, 30); }
+function fokusScan() { setTimeout(() => { if (S.section === 'scan' && $('modal').hidden) $('scanInput').focus(); }, 30); }
 
 function setMode(m, otomatis) {
   S.scan.mode = m;
   if (!otomatis) S.scan.auto = false;
   $$('#modeSwitch button').forEach((b) => b.classList.toggle('active', b.dataset.mode === m));
-  $('monMode').textContent = m;
   fokusScan();
 }
 
@@ -503,7 +479,7 @@ function prosesScan(kode, perangkat, modeKhusus) {
   if (!kode) return Promise.resolve();
   const mode = modeKhusus || S.scan.mode;
   S.scan.antrean = S.scan.antrean.then(() => {
-    if (!S.scan.monitor) $('scHasil').innerHTML = `<div class="empty"><div class="spinner dark"></div><p>Memverifikasi <b class="mono">${esc(kode)}</b>…</p></div>`;
+    $('scHasil').innerHTML = `<div class="empty"><div class="spinner dark"></div><p>Memverifikasi <b class="mono">${esc(kode)}</b>…</p></div>`;
     return call('apiScan', S.token, kode, mode, perangkat)
       .then((d) => { bunyi(true); tampilHasilScan(d, null); if (d.statistik) renderStatScan(d.statistik); })
       .catch((err) => { bunyi(false); tampilHasilScan(null, err, kode); });
@@ -512,7 +488,6 @@ function prosesScan(kode, perangkat, modeKhusus) {
 }
 
 function tampilHasilScan(d, err, kode) {
-  if (S.scan.monitor) tampilMonitor(d, err);
   if (err) {
     const info = err.data && err.data.siswa;
     $('scHasil').innerHTML = `<div class="result">
@@ -610,81 +585,24 @@ function aturPerangkat() {
     simpan.set('perangkat', v);
     S.scan.perangkat = v;
     $('scPerangkat').textContent = v;
-    $('monKiosk').textContent = v.toUpperCase();
     tutupModal();
   };
 }
 
-// ── Layar monitor: tampil penuh di komputer yang sama dengan pemindai ──
+// ── Layar monitor: dibuka di TAB BARU (monitor.html) dengan kunci perangkat sendiri ──
+// Kunci perangkat disimpan di browser ini dan tidak ikut habis saat admin logout,
+// sehingga layar monitor tetap berjalan walaupun dashboard dipakai di tab/komputer lain.
 function bukaMonitor() {
-  S.scan.monitor = true;
-  $('monitor').hidden = false;
-  $('monMode').textContent = S.scan.mode;
-  monitorIdle();
-  detik();
-  try { if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {}); } catch (e) { /* abaikan */ }
-  setTimeout(() => $('monInput').focus(), 100);
-}
-function tutupMonitor() {
-  S.scan.monitor = false;
-  $('monitor').hidden = true;
-  clearTimeout(S.scan.timer);
-  try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* abaikan */ }
-  fokusScan();
-}
-function monitorIdle() {
-  $('monitor').classList.remove('err');
-  $('monIdle').hidden = false;
-  $('monCard').hidden = true;
-}
-function tampilMonitor(d, err) {
-  clearTimeout(S.scan.timer);
-  const card = $('monCard');
-  card.className = 'mon-card';
-  $('monIdle').hidden = true;
-  card.hidden = false;
-  void card.offsetWidth; // ulang animasi
-  const DETIK = err ? 4 : 5;
-  if (err) {
-    $('monitor').classList.add('err');
-    card.classList.add('error');
-    const s = err.data && err.data.siswa;
-    $('monFoto').innerHTML = '<span class="ms" style="font-size:1em">warning</span>';
-    $('monFoto').style.backgroundImage = '';
-    $('monSapa').textContent = s ? s.nama : 'Mohon maaf';
-    $('monNama').textContent = err.message;
-    $('monMeta').innerHTML = s ? `Kelas ${esc(s.kelas)} • NIS <b>${esc(s.nis)}</b>` : '';
-    $('monStatus').className = 'mon-status error';
-    $('monStatus').innerHTML = '<span class="ms">support_agent</span> Silakan hubungi guru piket';
-    $('monInfo').textContent = 'Scan ditolak';
-  } else {
-    $('monitor').classList.remove('err');
-    const pulang = d.mode === 'PULANG', telat = d.status === 'Terlambat';
-    if (pulang) card.classList.add('pulang'); else if (telat) card.classList.add('late');
-    const s = d.siswa;
-    $('monFoto').style.backgroundImage = s.foto ? `url('${s.foto}')` : '';
-    $('monFoto').innerHTML = (s.foto ? '' : esc(inisial(s.nama))) + '<span class="ok"><span class="ms">check</span></span>';
-    $('monSapa').textContent = pulang ? 'Sampai Jumpa,' : 'Selamat Datang,';
-    $('monNama').textContent = s.nama;
-    $('monMeta').innerHTML = `Kelas ${esc(s.kelas)} • NIS: <b>${esc(s.nis)}</b>`;
-    $('monStatus').className = 'mon-status ' + (pulang ? 'pulang' : telat ? 'late' : '');
-    $('monStatus').innerHTML = `<span class="ms">${pulang ? 'home' : telat ? 'alarm' : 'verified'}</span> ${pulang ? 'PULANG' : telat ? 'TERLAMBAT' : 'HADIR TEPAT WAKTU'} — ${esc(d.jam)} WIB`;
-    $('monInfo').textContent = pulang ? 'Hati-hati di jalan!' : telat ? 'Segera menuju kelas' : 'Selamat belajar!';
-  }
-  const bar = $('monBar');
-  bar.style.transition = 'none'; bar.style.width = '100%';
-  void bar.offsetWidth;
-  bar.style.transition = `width ${DETIK}s linear`; bar.style.width = '0%';
-  let sisa = DETIK;
-  $('monDetik').textContent = sisa;
-  const tick = () => {
-    sisa--;
-    if (sisa <= 0) { monitorIdle(); return; }
-    $('monDetik').textContent = sisa;
-    S.scan.timer = setTimeout(tick, 1000);
-  };
-  S.scan.timer = setTimeout(tick, 1000);
-  $('monInput').focus();
+  let ada = null;
+  try { ada = JSON.parse(localStorage.getItem('absen_kiosk') || 'null'); } catch (e) { ada = null; }
+  if (ada && ada.kunci) { window.open('monitor.html', '_blank'); return; }
+  // Buka tab dulu (agar tidak diblokir pop-up blocker), lalu siapkan kunci perangkat
+  const tab = window.open('monitor.html#menyiapkan', '_blank');
+  call('apiKioskBuat', S.token, S.scan.perangkat || simpan.get('perangkat', 'Kiosk Gerbang')).then((k) => {
+    try { localStorage.setItem('absen_kiosk', JSON.stringify({ kunci: k.kunci, nama: k.nama })); } catch (e) { /* abaikan */ }
+    if (!tab || tab.closed) window.open('monitor.html', '_blank');
+    toast('sukses', 'Layar monitor dibuka di tab baru', 'Perangkat: ' + k.nama);
+  }).catch((e) => { if (tab && !tab.closed) tab.close(); gagal(e); });
 }
 
 // ════════════════════════════════════════════════════════
@@ -1195,6 +1113,22 @@ function muatPengaturan() {
     $('pgNotifInfo').innerHTML = `<span class="ms">history</span><div class="grow">${nt ? `Terakhir dijalankan <b>${esc(nt.waktu)}</b>: ${nt.jumlahEmail} email terkirim, ${nt.jumlahSiswa} siswa Alpa${nt.gagal ? `, ${nt.gagal} gagal` : ''}.` : 'Belum pernah dijalankan.'}</div>`;
     $('pgNamaAplikasi').value = p.namaAplikasi; $('pgNamaSekolah').value = p.namaSekolah;
     $('pgLinkDb').href = d.tautan.database; $('pgLinkFolder').href = d.tautan.folder;
+    muatKiosk();
+  }).catch(gagal);
+}
+
+function muatKiosk() {
+  $('pgLinkMonitor').textContent = new URL('monitor.html', location.href).href;
+  call('apiKioskList', S.token).then((list) => {
+    $('pgKiosk').innerHTML = list.length ? list.map((k) => `<tr><td><b>${esc(k.nama)}</b></td><td>${esc(k.oleh)}</td><td class="small mono">${esc(k.dibuat)}</td>
+      <td class="small mono">${esc(k.aktifTerakhir)}</td><td>${k.status === 'Dicabut' ? '<span class="pill pill-nonaktif">Dicabut</span>' : '<span class="pill pill-aktif"><i class="dot"></i>Aktif</span>'}</td>
+      <td>${k.status === 'Dicabut' ? '' : `<button class="btn btn-danger-o sm" data-id="${esc(k.id)}"><span class="ms">link_off</span> Cabut</button>`}</td></tr>`).join('')
+      : '<tr><td colspan="6"><div class="empty"><span class="ms">tv_off</span><p>Belum ada perangkat monitor. Buka Stasiun Scan → Layar Monitor Siswa.</p></div></td></tr>';
+    $$('#pgKiosk button[data-id]').forEach((b) => {
+      b.onclick = () => konfirmasi('Cabut perangkat?', 'Layar monitor di perangkat ini langsung berhenti menerima scan dan harus diaktifkan ulang.', 'Cabut', 'danger').then((ok) => {
+        if (ok) call('apiKioskCabut', S.token, b.dataset.id).then(() => { toast('sukses', 'Perangkat dicabut'); muatKiosk(); }).catch(gagal);
+      });
+    });
   }).catch(gagal);
 }
 

@@ -166,13 +166,12 @@ Jika kartu hilang/disalahgunakan: buka siswa → **Buat ulang barcode**. Kartu l
 **Perangkat:** komputer/laptop + **pemindai barcode USB** + monitor yang menghadap siswa.
 
 1. Pemindai barcode USB umumnya bekerja seperti keyboard. Pastikan diatur ke mode yang **menambahkan Enter** setelah kode (bawaan sebagian besar pemindai) dan bisa membaca **Code 128**.
-2. Hubungkan monitor gerbang ke komputer dengan mode **Duplikat/Mirror**.
-3. Login dengan username Guru Piket/Admin → **Stasiun Scan**.
-4. Klik ikon pengaturan di samping tombol monitor → beri nama perangkat, mis. `Kiosk 01 Gerbang Utama`. Jika ada lebih dari satu gerbang, setiap komputer harus punya nama berbeda. Nama ini dipakai untuk mendeteksi titip absen.
-5. Klik **Layar Monitor Siswa** → layar penuh. Siswa cukup menempelkan kartu; layar menampilkan sambutan lalu kembali siap dalam 5 detik.
-   - Mode MASUK/PULANG berganti otomatis sesuai jam di Pengaturan.
-   - Tekan **Esc** untuk keluar dari layar monitor.
-6. Biarkan tab tetap terbuka sepanjang hari. Sesi dijaga tetap aktif otomatis selama tab terbuka.
+2. Layar monitor siswa berjalan di **halaman terpisah**: `https://alamat-situs-anda/monitor.html`. Ada dua cara membukanya:
+   - **Di komputer yang sama dengan dashboard:** Stasiun Scan → **Layar Monitor Siswa (tab baru)**. Tab baru langsung aktif tanpa login ulang. Seret tab itu ke monitor gerbang (mode *Extend*), lalu klik **Mulai Layar Penuh**.
+   - **Di komputer gerbang lain:** buka alamat `…/monitor.html`, isi nama perangkat (mis. `Gerbang Utama`), lalu masuk sekali dengan username & password Guru Piket/Admin.
+3. Setelah aktif, layar monitor memakai **kunci perangkat** sendiri yang tersimpan di browser komputer itu. Layar **tidak terpengaruh** bila admin logout, ganti akun, atau membuka dashboard di komputer/browser lain. Setelah komputer dinyalakan ulang, cukup buka lagi `monitor.html` tanpa login.
+4. Pemindai USB diarahkan ke tab monitor. Mode MASUK/PULANG berganti otomatis sesuai jam. Lewat tombol ⚙ di pojok kanan bawah (atau **Esc**), mode bisa dipaksa: **F2** Masuk, **F4** Pulang, **F9** Otomatis. Menu yang sama juga mengatur suara dan layar penuh.
+5. Daftar semua layar monitor ada di **Pengaturan → Perangkat Monitor**. Jika laptop hilang atau tidak dipakai lagi, klik **Cabut**. Layar itu langsung berhenti menerima scan.
 
 Kartu rusak atau lupa dibawa? Di Stasiun Scan tekan **F9** (Catat manual), cari nama siswa, lalu catat.
 

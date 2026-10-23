@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Absen Digital Siswa SMA Triguna 1956 Jakarta — presensi barcode masuk & pulang">
   <meta name="theme-color" content="#1D4ED8">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231D4ED8' stroke='%23F5B301' stroke-width='4'/%3E%3Ctext x='32' y='42' font-size='28' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EAD%3C/text%3E%3C/svg%3E">
+  <link id="favicon" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231D4ED8' stroke='%23F5B301' stroke-width='4'/%3E%3Ctext x='32' y='42' font-size='28' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EAD%3C/text%3E%3C/svg%3E">
   <title>Absen Digital — SMA Triguna 1956</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,9 +17,9 @@
 
 <!-- ═════════════ LOADER AWAL ═════════════ -->
 <div id="loader" class="loader">
-  <div class="loader-logo"><span class="ms">school</span></div>
+  <div class="loader-logo"><img id="loaderLogo" alt="" hidden><span class="ms" id="loaderIkon">school</span></div>
   <div class="spinner"></div>
-  <p>Memuat Absen Digital…</p>
+  <p>Memuat <span class="app-name">Absen Digital</span>…</p>
 </div>
 
 <!-- ═════════════ HALAMAN MASUK ═════════════ -->
@@ -177,7 +177,7 @@
               <button data-mode="PULANG"><span class="ms">bedtime</span> SCAN PULANG <small id="scRentangPulang"></small></button>
             </div>
             <div class="row gap">
-              <button class="btn btn-soft" onclick="bukaMonitor()"><span class="ms">tv</span> Layar Monitor Siswa</button>
+              <button class="btn btn-soft" onclick="bukaMonitor()"><span class="ms">open_in_new</span> Layar Monitor Siswa (tab baru)</button>
               <button class="icon-btn boxed" onclick="aturPerangkat()" title="Nama perangkat"><span class="ms">tune</span></button>
             </div>
           </div>
@@ -379,6 +379,7 @@
           <button data-tab="jam">Jam &amp; Aturan</button>
           <button data-tab="notif">Notifikasi</button>
           <button data-tab="identitas">Identitas &amp; Logo</button>
+          <button data-tab="kiosk">Perangkat Monitor</button>
         </div>
         <div id="pg-pengguna" class="pg-pane">
           <div class="card">
@@ -444,6 +445,14 @@
             </div>
           </div>
         </div>
+        <div id="pg-kiosk" class="pg-pane" hidden>
+          <div class="card">
+            <div class="card-head"><div><h3>Perangkat Layar Monitor</h3><p class="muted small">Komputer gerbang yang menjalankan halaman Layar Monitor Siswa</p></div>
+              <button class="btn btn-primary" onclick="bukaMonitor()"><span class="ms">open_in_new</span> Buka di perangkat ini</button></div>
+            <div class="info-strip"><span class="ms">info</span><div class="grow">Di komputer gerbang lain, buka <b class="mono" id="pgLinkMonitor">…/monitor.html</b> lalu aktifkan dengan username &amp; password Guru Piket/Admin. Layar tetap berjalan walaupun akun itu logout. Cabut perangkat yang hilang atau tidak dipakai lagi.</div></div>
+            <div class="table-wrap mt"><table class="table"><thead><tr><th>Nama perangkat</th><th>Diaktifkan oleh</th><th>Dibuat</th><th>Terakhir aktif</th><th>Status</th><th></th></tr></thead><tbody id="pgKiosk"></tbody></table></div>
+          </div>
+        </div>
       </section>
 
     </main>
@@ -507,50 +516,6 @@
     <a data-ps="beranda" class="active"><span class="ms">home</span>Beranda</a>
     <a data-ps="ajukan"><span class="ms">add_circle</span>Ajukan</a>
   </nav>
-</div>
-
-<!-- ═════════════ LAYAR MONITOR SAMBUTAN ═════════════ -->
-<div id="monitor" class="monitor" hidden>
-  <input id="monInput" class="mon-input" autocomplete="off" aria-label="Input pemindai">
-  <header class="mon-head">
-    <div class="row gap">
-      <div class="logo-ring md"><img class="app-logo" alt=""><span class="ms logo-fallback">school</span></div>
-      <div><div class="mon-school school-upper">SMA TRIGUNA 1956 JAKARTA</div><div class="mon-sub">SISTEM PRESENSI OTOMATIS &amp; GERBANG PINTAR</div></div>
-    </div>
-    <div class="row gap">
-      <span class="mon-kiosk"><span class="ms">door_front</span> <span id="monKiosk">GERBANG UTAMA</span> — <span id="monMode">MASUK</span></span>
-      <span class="mon-date"><span class="ms">calendar_today</span> <span id="monTanggal"></span></span>
-    </div>
-  </header>
-
-  <div class="mon-body">
-    <!-- Siap scan -->
-    <div class="mon-state" id="monIdle">
-      <div class="logo-ring giant"><img class="app-logo" alt=""><span class="ms logo-fallback">school</span></div>
-      <h1 class="mon-title school-upper">SMA TRIGUNA 1956 JAKARTA</h1>
-      <div class="mon-prompt"><span class="ms pulse">barcode_scanner</span> Silakan scan kartu Anda</div>
-    </div>
-    <!-- Sukses / error -->
-    <div class="mon-card" id="monCard" hidden>
-      <div class="mon-card-tab"></div>
-      <div class="mon-photo" id="monFoto"></div>
-      <div class="mon-greet" id="monSapa">Selamat Datang,</div>
-      <div class="mon-name" id="monNama">NAMA SISWA</div>
-      <div class="mon-meta" id="monMeta"></div>
-      <div class="mon-status" id="monStatus"></div>
-      <div class="mon-count">
-        <div class="row between small"><span id="monInfo">Silakan masuk</span><span>Layar kembali siap dalam <b id="monDetik">5</b> detik</span></div>
-        <div class="mon-bar"><i id="monBar"></i></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="mon-clock tnum" id="monJam"><span>00</span><i>:</i><span>00</span><i>:</i><span class="sec">00</span><small>WIB</small></div>
-  <div class="mon-foot">
-    <span class="mon-pill dark"><span class="ms">schedule</span> Batas jam masuk tepat waktu: <b id="monBatas">07:00</b> WIB</span>
-    <span class="mon-pill">Tetap tertib, jaga kebersihan lingkungan, dan awali hari dengan senyuman!</span>
-  </div>
-  <button class="mon-exit" onclick="tutupMonitor()" title="Tutup monitor (Esc)"><span class="ms">close_fullscreen</span></button>
 </div>
 
 <!-- ═════════════ MODAL, TOAST, CETAK ═════════════ -->

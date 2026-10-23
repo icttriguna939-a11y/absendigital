@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Layar Monitor — Absen Digital</title>
+  <meta name="theme-color" content="#1D4ED8">
+  <meta name="robots" content="noindex">
+  <link id="favicon" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231D4ED8' stroke='%23F5B301' stroke-width='4'/%3E%3Ctext x='32' y='42' font-size='28' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EAD%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="mon-page">
+
+<!-- ═════════════ LAYAR MONITOR SAMBUTAN (halaman mandiri) ═════════════ -->
+<div id="monitor" class="monitor">
+  <input id="monInput" class="mon-input" autocomplete="off" aria-label="Input pemindai barcode">
+  <header class="mon-head">
+    <div class="row gap">
+      <div class="logo-ring md"><img class="app-logo" alt=""><span class="ms logo-fallback">school</span></div>
+      <div>
+        <div class="mon-school school-upper">SMA TRIGUNA 1956 JAKARTA</div>
+        <div class="mon-sub"><span class="app-upper">ABSEN DIGITAL</span> • SISTEM PRESENSI OTOMATIS</div>
+      </div>
+    </div>
+    <div class="row gap">
+      <span class="mon-kiosk"><span class="ms">door_front</span> <span id="monKiosk">GERBANG</span> — <span id="monMode">MASUK</span></span>
+      <span class="mon-date"><span class="ms">calendar_today</span> <span id="monTanggal"></span></span>
+    </div>
+  </header>
+
+  <div id="monOffline" class="mon-offline" hidden><span class="ms">wifi_off</span> Koneksi ke server terputus — scan akan dicoba lagi otomatis</div>
+
+  <div class="mon-body">
+    <!-- Siap scan -->
+    <div class="mon-state" id="monIdle">
+      <div class="logo-ring giant"><img class="app-logo" alt=""><span class="ms logo-fallback">school</span></div>
+      <div>
+        <h1 class="mon-title school-upper">SMA TRIGUNA 1956 JAKARTA</h1>
+        <div class="mon-app app-name">Absen Digital</div>
+      </div>
+      <div class="mon-prompt" id="monPrompt"><span class="ms pulse">barcode_scanner</span> <span id="monPromptText">Silakan scan kartu Anda</span></div>
+    </div>
+    <!-- Sukses / error -->
+    <div class="mon-card" id="monCard" hidden>
+      <div class="mon-card-tab"></div>
+      <div class="mon-photo" id="monFoto"></div>
+      <div class="mon-greet" id="monSapa">Selamat Datang,</div>
+      <div class="mon-name" id="monNama">NAMA SISWA</div>
+      <div class="mon-meta" id="monMeta"></div>
+      <div class="mon-status" id="monStatus"></div>
+      <div class="mon-count">
+        <div class="row between small"><span id="monInfo">Silakan masuk</span><span>Layar kembali siap dalam <b id="monDetik">5</b> detik</span></div>
+        <div class="mon-bar"><i id="monBar"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mon-clock tnum" id="monJam"><span>--</span><i>:</i><span>--</span><i>:</i><span class="sec">--</span><small>WIB</small></div>
+  <div class="mon-foot">
+    <span class="mon-pill dark"><span class="ms">schedule</span> Batas jam masuk tepat waktu: <b id="monBatas">--:--</b> WIB</span>
+    <span class="mon-pill">Tetap tertib, jaga kebersihan lingkungan, dan awali hari dengan senyuman!</span>
+  </div>
+
+  <!-- Tombol & menu pengaturan layar (pojok kanan bawah) -->
+  <button class="mon-exit" id="monMenuBtn" title="Pengaturan layar (Esc)"><span class="ms">settings</span></button>
+  <div class="mon-menu" id="monMenu" hidden>
+    <div class="mon-menu-head"><b>Pengaturan Layar</b><small id="monMenuKiosk"></small></div>
+    <div class="mon-menu-label">Mode scan</div>
+    <div class="seg sm" id="monModeSeg">
+      <button class="seg-btn" data-m="AUTO">Otomatis</button>
+      <button class="seg-btn" data-m="MASUK">Masuk</button>
+      <button class="seg-btn" data-m="PULANG">Pulang</button>
+    </div>
+    <button class="mon-menu-item" id="monFull"><span class="ms">fullscreen</span> Layar penuh <kbd>F11</kbd></button>
+    <button class="mon-menu-item" id="monSuara"><span class="ms">volume_up</span> Suara aktif</button>
+    <a class="mon-menu-item" href="index.html" target="_blank"><span class="ms">space_dashboard</span> Buka dashboard (tab baru)</a>
+    <button class="mon-menu-item danger" id="monLepas"><span class="ms">link_off</span> Nonaktifkan layar di perangkat ini</button>
+    <p class="mon-menu-tip"><kbd>F2</kbd> Masuk · <kbd>F4</kbd> Pulang · <kbd>F9</kbd> Otomatis</p>
+  </div>
+</div>
+
+<!-- ═════════════ MULAI (diperlukan untuk layar penuh & suara) ═════════════ -->
+<div id="monStart" class="mon-overlay" hidden>
+  <div class="mon-dialog center">
+    <div class="logo-ring big" style="margin:0 auto"><img class="app-logo" alt=""><span class="ms logo-fallback">school</span></div>
+    <h2 class="mt-lg">Layar Monitor Siap</h2>
+    <p class="muted mt">Perangkat: <b id="monStartKiosk">—</b></p>
+    <button class="btn btn-primary lg block mt-lg" id="monMulai"><span class="ms">fullscreen</span> Mulai Layar Penuh</button>
+    <p class="small muted mt">Scan kartu pertama juga langsung memulai layar.</p>
+  </div>
+</div>
+
+<!-- ═════════════ AKTIVASI PERANGKAT ═════════════ -->
+<div id="monAktivasi" class="mon-overlay" hidden>
+  <form class="mon-dialog" id="formAktivasi">
+    <div class="row gap"><div class="logo-ring sm"><img class="app-logo" alt=""><span class="ms logo-fallback">school</span></div>
+      <div><h2>Aktifkan Layar Monitor</h2><p class="small muted">Sekali saja per komputer/browser</p></div></div>
+    <div id="akAlert" class="alert alert-danger mt" hidden><span class="ms">error</span><div id="akAlertText"></div></div>
+    <p class="small muted mt">Masuk dengan akun <b>Admin</b> atau <b>Guru Piket</b>. Setelah aktif, layar ini tetap berjalan walaupun akun tersebut logout atau dipakai di komputer lain.</p>
+    <div class="stack mt">
+      <label class="field"><span>Nama perangkat / gerbang</span><input id="akNama" maxlength="30" placeholder="mis. Gerbang Utama" required></label>
+      <label class="field"><span>Username</span><input id="akUser" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+      <label class="field"><span>Password</span><input id="akSandi" type="password" autocomplete="current-password" required></label>
+      <button class="btn btn-primary lg block" type="submit" id="akKirim"><span class="ms">link</span> Aktifkan</button>
+    </div>
+  </form>
+</div>
+
+<!-- ═════════════ MEMUAT ═════════════ -->
+<div id="loader" class="loader">
+  <div class="loader-logo"><img id="loaderLogo" alt="" hidden><span class="ms" id="loaderIkon">school</span></div>
+  <div class="spinner"></div>
+  <p>Memuat layar monitor <span class="app-name">Absen Digital</span>…</p>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/monitor.js"></script>
+</body>
+</html>

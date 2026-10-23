@@ -72,3 +72,59 @@ async function call(action, ...args) {
   if (e.data.sesiHabis && typeof sesiHabis === 'function') sesiHabis();
   throw e;
 }
+
+/* ============================================================
+ * IDENTITAS APLIKASI (nama, nama sekolah, logo) — dipakai index.html & monitor.html
+ * Disimpan di browser agar layar loading & favicon langsung memakai logo sekolah
+ * pada kunjungan berikutnya, sebelum server sempat menjawab.
+ * ============================================================ */
+const BRAND_KEY = 'absen_brand';
+const FAVICON_BAWAAN = (document.getElementById('favicon') || {}).href || '';
+
+function brandBaca() {
+  try { return JSON.parse(localStorage.getItem(BRAND_KEY) || 'null'); } catch (e) { return null; }
+}
+
+function brandSimpan(app) {
+  if (!app) return;
+  const lama = brandBaca() || {};
+  const baru = {
+    namaAplikasi: app.namaAplikasi || lama.namaAplikasi || 'Absen Digital',
+    namaSekolah: app.namaSekolah || lama.namaSekolah || 'SMA Triguna 1956 Jakarta',
+    logo: app.logo !== undefined ? app.logo : (lama.logo || ''),
+    logoVer: app.logoVer !== undefined ? app.logoVer : (lama.logoVer || '')
+  };
+  try { localStorage.setItem(BRAND_KEY, JSON.stringify(baru)); } catch (e) {
+    // Logo terlalu besar untuk penyimpanan browser: simpan tanpa logo
+    try { localStorage.setItem(BRAND_KEY, JSON.stringify(Object.assign({}, baru, { logo: '' }))); } catch (e2) { /* abaikan */ }
+  }
+  return baru;
+}
+
+/** Terapkan nama & logo ke semua elemen bertanda + favicon + layar loading. */
+function terapkanBrand(app) {
+  if (!app) return;
+  const nama = app.namaAplikasi || 'Absen Digital';
+  const sek = app.namaSekolah || 'SMA Triguna 1956 Jakarta';
+  document.querySelectorAll('.app-name').forEach((el) => { el.textContent = nama; });
+  document.querySelectorAll('.app-upper').forEach((el) => { el.textContent = nama.toUpperCase(); });
+  document.querySelectorAll('.school-name').forEach((el) => { el.textContent = sek; });
+  document.querySelectorAll('.school-upper').forEach((el) => { el.textContent = sek.toUpperCase(); });
+  document.querySelectorAll('.logo-ring').forEach((el) => {
+    const img = el.querySelector('img');
+    if (img && app.logo) img.src = app.logo;
+    el.classList.toggle('has-logo', !!app.logo);
+  });
+  const lg = document.getElementById('loaderLogo');
+  if (lg) {
+    if (app.logo) lg.src = app.logo;
+    lg.hidden = !app.logo;
+    const ik = document.getElementById('loaderIkon');
+    if (ik) ik.hidden = !!app.logo;
+  }
+  const fav = document.getElementById('favicon');
+  if (fav) fav.href = app.logo || FAVICON_BAWAAN;
+}
+
+// Terapkan identitas tersimpan sesegera mungkin (sebelum server menjawab)
+terapkanBrand(brandBaca());
