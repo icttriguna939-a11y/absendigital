@@ -359,6 +359,8 @@ function detik() {
 }
 
 function pasangEvent() {
+  // Pemindai USB: proses saat Enter/Tab, atau otomatis bila pemindai tidak mengirim akhiran
+  pasangPemindai($('scanInput'), (v) => prosesScan(v, S.scan.perangkat));
   $$('#sideNav a').forEach((a) => { a.onclick = () => navigateTo(a.dataset.nav); });
   $$('#modeSwitch button').forEach((b) => { b.onclick = () => setMode(b.dataset.mode, false); });
   $$('#pjTabs button').forEach((b) => { b.onclick = () => { S.pj.tab = b.dataset.tab; S.pj.sel = null; $$('#pjTabs button').forEach((x) => x.classList.toggle('active', x === b)); renderPengajuanList(); }; });

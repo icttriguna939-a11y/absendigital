@@ -128,3 +128,34 @@ function terapkanBrand(app) {
 
 // Terapkan identitas tersimpan sesegera mungkin (sebelum server menjawab)
 terapkanBrand(brandBaca());
+
+/* ============================================================
+ * PEMINDAI BARCODE USB — dipakai Stasiun Scan & Layar Monitor
+ * Pemindai bekerja seperti keyboard yang mengetik sangat cepat. Kode diproses bila:
+ *  - pemindai mengirim Enter atau Tab setelah kode, ATAU
+ *  - ketikan cepat (gaya pemindai) berhenti 0,35 detik tanpa Enter/Tab
+ *    (untuk pemindai yang belum diatur mengirim akhiran Enter).
+ * ============================================================ */
+function pasangPemindai(input, onKode) {
+  let jeda = null, terakhir = 0, cepat = 0;
+  const kirim = () => {
+    clearTimeout(jeda);
+    const v = input.value.trim();
+    input.value = '';
+    cepat = 0;
+    if (v) onKode(v);
+  };
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      if (input.value.trim()) { e.preventDefault(); kirim(); } else if (e.key === 'Enter') e.preventDefault();
+    }
+  });
+  input.addEventListener('input', () => {
+    const kini = performance.now();
+    cepat = kini - terakhir < 60 ? cepat + 1 : 0;
+    terakhir = kini;
+    clearTimeout(jeda);
+    jeda = setTimeout(() => { if (cepat >= 3 && input.value.trim().length >= 4) kirim(); }, 350);
+  });
+  return kirim;
+}

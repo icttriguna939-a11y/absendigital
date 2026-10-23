@@ -113,7 +113,8 @@
     $('monMenuKiosk').textContent = 'Perangkat: ' + d.nama;
     $('monBatas').textContent = d.aturan.batasTepat;
     document.title = 'Layar Monitor — ' + (d.app.namaAplikasi || 'Absen Digital');
-    $('monPromptText').textContent = d.hariSekolah ? 'Silakan scan kartu Anda' : 'Hari ini bukan hari sekolah' + (d.keteranganLibur ? ' — ' + d.keteranganLibur : '');
+    M.promptAsal = d.hariSekolah ? 'Silakan scan kartu Anda' : 'Hari ini bukan hari sekolah' + (d.keteranganLibur ? ' — ' + d.keteranganLibur : '');
+    if (!M.antre) $('monPromptText').textContent = M.promptAsal;
     tampilOffline(false);
     hitungMode();
   }
@@ -191,11 +192,20 @@
 
   function proses(kode) {
     kode = String(kode || '').trim();
-    if (!kode || !M.kiosk) return;
+    if (!kode) return;
+    if (!M.kiosk) {
+      // Jangan diam: beri tahu bahwa layar belum aktif
+      bunyi(false);
+      tampil(null, Object.assign(new Error('Layar monitor belum aktif'), { data: {} }));
+      return;
+    }
     if (!M.mulai) mulaiLayar();
     const mode = M.mode;
+    M.antre = (M.antre || 0) + 1;
+    tampilProses(kode);
     M.antrean = M.antrean.then(() => call('apiKioskScan', M.kiosk.kunci, kode, mode)
       .then((d) => { tampilOffline(false); bunyi(true); tampil(d, null); })
+      .finally(() => { M.antre--; if (!M.antre) selesaiProses(); })
       .catch((err) => {
         if (err.data && err.data.kioskInvalid) { ls.del(KUNCI_KEY); tampilAktivasi(err.message); return; }
         const putus = !err.data || (Object.keys(err.data).length === 0 && /terhubung|lama merespons/i.test(err.message));
@@ -206,6 +216,21 @@
   }
 
   function tampilOffline(on) { $('monOffline').hidden = !on; }
+
+  // Umpan balik langsung saat kartu terbaca (server Google bisa butuh beberapa detik)
+  let lambat = null;
+  function tampilProses(kode) {
+    $('monPrompt').classList.add('proses');
+    $('monPromptText').textContent = 'Memproses kartu ' + kode + '…';
+    if (!$('monCard').hidden) $('monInfo').textContent = 'Memproses kartu berikutnya…';
+    clearTimeout(lambat);
+    lambat = setTimeout(() => { $('monPromptText').textContent = 'Server sedang lambat, mohon tunggu sebentar…'; }, 8000);
+  }
+  function selesaiProses() {
+    clearTimeout(lambat);
+    $('monPrompt').classList.remove('proses');
+    $('monPromptText').textContent = M.promptAsal || 'Silakan scan kartu Anda';
+  }
 
   function idle() {
     $('monitor').classList.remove('err');
@@ -286,9 +311,7 @@
   // ════════════════ EVENT ════════════════
   function pasangEvent() {
     labelSuara();
-    $('monInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); const v = $('monInput').value; $('monInput').value = ''; proses(v); }
-    });
+    pasangPemindai($('monInput'), proses);
     $('formAktivasi').addEventListener('submit', kirimAktivasi);
     $('monMulai').addEventListener('click', mulaiLayar);
     $('monMenuBtn').addEventListener('click', (e) => { e.stopPropagation(); $('monMenu').hidden = !$('monMenu').hidden; if ($('monMenu').hidden) fokus(); });
@@ -319,6 +342,7 @@
       if (e.target !== $('monInput') && $('monMenu').hidden && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
         $('monInput').value += e.key;
+        $('monInput').dispatchEvent(new Event('input'));
         fokus();
       }
     });

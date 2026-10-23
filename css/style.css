@@ -648,3 +648,5 @@ select { padding-right: 30px; appearance: none; background-image: url("data:imag
 .drop-zone .ms { font-size: 30px; color: var(--primary); }
 .drop-zone:hover, .drop-zone.aktif { border-color: var(--primary); background: var(--izin-bg); }
 @media (max-width: 640px) { .foto-upload { flex-direction: column; } }
+.mon-prompt.proses { background: rgba(245,179,1,.22); border-color: rgba(245,179,1,.6); }
+.mon-prompt.proses .ms { animation: putar 1s linear infinite; }
