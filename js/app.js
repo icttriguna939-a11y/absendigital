@@ -531,15 +531,22 @@ function prosesScan(kode, perangkat, modeKhusus) {
   kode = String(kode || '').trim();
   if (!kode) return Promise.resolve();
   const mode = modeKhusus || S.scan.mode;
+  kabariMonitor({ proses: kode });
   // Tampilkan tanda "sedang diproses" SEKETIKA, walaupun masih ada scan sebelumnya di antrean
   $('scHasil').innerHTML = `<div class="empty"><div class="spinner dark"></div><p>Memverifikasi <b class="mono">${esc(kode)}</b>…</p></div>`;
   S.scan.antrean = S.scan.antrean.then(() => {
     $('scHasil').innerHTML = `<div class="empty"><div class="spinner dark"></div><p>Memverifikasi <b class="mono">${esc(kode)}</b>…</p></div>`;
     return call('apiScan', S.token, kode, mode, perangkat)
-      .then((d) => { bunyi(true); tampilHasilScan(d, null); if (d.statistik) renderStatScan(d.statistik); })
-      .catch((err) => { bunyi(false); tampilHasilScan(null, err, kode); });
+      .then((d) => { bunyi(true); tampilHasilScan(d, null); if (d.statistik) renderStatScan(d.statistik); kabariMonitor({ hasil: d }); })
+      .catch((err) => { bunyi(false); tampilHasilScan(null, err, kode); kabariMonitor({ gagal: { message: err.message, data: err.data || {} } }); });
   });
   return S.scan.antrean;
+}
+
+// Hasil scan di Stasiun Scan ikut ditampilkan di tab Layar Monitor (browser yang sama)
+const kanalMonitor = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('absen-scan') : null;
+function kabariMonitor(pesan) {
+  try { if (kanalMonitor) kanalMonitor.postMessage(Object.assign({ waktu: Date.now() }, pesan)); } catch (e) { /* abaikan */ }
 }
 
 function tampilHasilScan(d, err, kode) {

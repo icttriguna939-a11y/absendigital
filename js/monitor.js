@@ -308,6 +308,20 @@
 
   function labelSuara() { $('monSuara').innerHTML = M.suara ? '<span class="ms">volume_up</span> Suara aktif' : '<span class="ms">volume_off</span> Suara mati'; }
 
+  // ════════════════ CERMIN DARI STASIUN SCAN ════════════════
+  // Scan yang dilakukan di tab dashboard (Stasiun Scan) pada browser yang sama juga tampil di sini.
+  if (typeof BroadcastChannel !== 'undefined') {
+    new BroadcastChannel('absen-scan').onmessage = (ev) => {
+      const m = ev.data || {};
+      if (!M.mulai) { M.mulai = true; $('monStart').hidden = true; }
+      if (m.proses) { M.cermin = true; tampilProses(m.proses); return; }
+      M.cermin = false;
+      if (!M.antre) selesaiProses();
+      if (m.hasil) tampil(m.hasil, null);
+      else if (m.gagal) tampil(null, Object.assign(new Error(m.gagal.message), { data: m.gagal.data || {} }));
+    };
+  }
+
   // ════════════════ EVENT ════════════════
   function pasangEvent() {
     labelSuara();
