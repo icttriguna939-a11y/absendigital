@@ -238,8 +238,8 @@
       const pulang = d.mode === 'PULANG', telat = d.status === 'Terlambat';
       if (pulang) card.classList.add('pulang'); else if (telat) card.classList.add('late');
       const s = d.siswa;
-      $('monFoto').style.backgroundImage = s.foto ? `url('${s.foto}')` : '';
-      $('monFoto').innerHTML = (s.foto ? '' : esc(inisial(s.nama))) + '<span class="ok"><span class="ms">check</span></span>';
+      $('monFoto').style.backgroundImage = s.fotoData ? `url('${s.fotoData}')` : '';
+      $('monFoto').innerHTML = (s.fotoData ? '' : esc(inisial(s.nama))) + '<span class="ok"><span class="ms">check</span></span>';
       $('monSapa').textContent = pulang ? 'Sampai Jumpa,' : 'Selamat Datang,';
       $('monNama').textContent = s.nama;
       $('monMeta').innerHTML = `Kelas ${esc(s.kelas)} • NIS: <b>${esc(s.nis)}</b>`;

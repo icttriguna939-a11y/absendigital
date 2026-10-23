@@ -73,9 +73,60 @@ function jm(t) { return t ? String(t).substr(0, 5) : '—'; }
 function inisial(nama) {
   return String(nama || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
+/** Avatar siswa. `foto` = id siswa bila punya foto (foto diambil lewat API karena file di Drive privat). */
 function avatar(nama, foto, cls) {
-  const st = foto ? ` style="background-image:url('${esc(foto)}')"` : '';
-  return `<div class="avatar ${cls || 'sm'} ${foto ? '' : 'soft'}"${st}>${foto ? '' : esc(inisial(nama))}</div>`;
+  return `<div class="avatar ${cls || 'sm'} soft"${foto ? ` data-foto="${esc(foto)}"` : ''}>${esc(inisial(nama))}</div>`;
+}
+
+// ── Pemuat foto siswa ──
+// Semua elemen ber-atribut data-foto="ID_SISWA" (opsional data-foto-size="besar") diisi otomatis
+// begitu muncul di halaman. Foto diambil per kelompok (maks 50) dan disimpan di memori.
+const FOTO_CACHE = { mini: new Map(), besar: new Map() };
+const FOTO_TUNGGU = { mini: new Map(), besar: new Map() };
+function pasangFoto(el, url) {
+  if (!url) return;
+  el.style.backgroundImage = `url('${url}')`;
+  el.classList.remove('soft');
+  Array.from(el.childNodes).forEach((n) => { if (n.nodeType === 3) n.remove(); });
+  el.dataset.fotoOk = '1';
+}
+function isiFoto(root) {
+  if (!S.token) return Promise.resolve();
+  const els = $$('[data-foto]:not([data-foto-ok])', root || document);
+  const tugas = [];
+  ['mini', 'besar'].forEach((uk) => {
+    const grup = els.filter((el) => (el.dataset.fotoSize || 'mini') === uk);
+    grup.forEach((el) => { if (FOTO_CACHE[uk].has(el.dataset.foto)) pasangFoto(el, FOTO_CACHE[uk].get(el.dataset.foto)); });
+    const perlu = Array.from(new Set(grup.filter((el) => !el.dataset.fotoOk).map((el) => el.dataset.foto)));
+    const baru = perlu.filter((id) => !FOTO_TUNGGU[uk].has(id) && !FOTO_CACHE[uk].has(id));
+    for (let i = 0; i < baru.length; i += 50) {
+      const ids = baru.slice(i, i + 50);
+      const pr = call('apiFoto', S.token, ids, uk).then((m) => {
+        ids.forEach((id) => { FOTO_CACHE[uk].set(id, (m && m[id]) || ''); FOTO_TUNGGU[uk].delete(id); });
+      }).catch(() => ids.forEach((id) => FOTO_TUNGGU[uk].delete(id)));
+      ids.forEach((id) => FOTO_TUNGGU[uk].set(id, pr));
+    }
+    perlu.forEach((id) => { if (FOTO_TUNGGU[uk].has(id)) tugas.push(FOTO_TUNGGU[uk].get(id)); });
+  });
+  return Promise.all(tugas).then(() => {
+    $$('[data-foto]:not([data-foto-ok])', root || document).forEach((el) => {
+      const uk = el.dataset.fotoSize || 'mini';
+      if (FOTO_CACHE[uk].has(el.dataset.foto)) pasangFoto(el, FOTO_CACHE[uk].get(el.dataset.foto));
+    });
+  });
+}
+let fotoJeda = null;
+new MutationObserver(() => { clearTimeout(fotoJeda); fotoJeda = setTimeout(() => isiFoto(), 60); })
+  .observe(document.body, { childList: true, subtree: true });
+
+/** Batas & format foto yang boleh diunggah dari komputer. */
+const FOTO_MAKS_MB = 5;
+const FOTO_FORMAT = ['image/jpeg', 'image/png', 'image/webp'];
+function cekFileFoto(f, maksMb) {
+  if (!f) return 'Tidak ada file dipilih.';
+  if (!FOTO_FORMAT.includes(f.type)) return `Format "${f.name.split('.').pop()}" tidak didukung. Gunakan JPG, PNG, atau WEBP.`;
+  if (f.size > (maksMb || FOTO_MAKS_MB) * 1024 * 1024) return `Ukuran file ${(f.size / 1048576).toFixed(1)} MB melebihi batas ${maksMb || FOTO_MAKS_MB} MB.`;
+  return '';
 }
 function pill(status) {
   const map = { 'Belum Hadir': 'belum' };
@@ -513,7 +564,7 @@ function tampilHasilScan(d, err, kode) {
 
 function hasilOrang(s, err) {
   return `<div class="result-person">
-    <div class="result-photo" style="${s.foto ? `background-image:url('${esc(s.foto)}')` : ''}">${s.foto ? '' : esc(inisial(s.nama))}<span class="badge-ok ${err ? 'err' : ''}"><span class="ms">${err ? 'close' : 'check'}</span></span></div>
+    <div class="result-photo" style="${s.fotoData ? `background-image:url('${s.fotoData}')` : ''}">${s.fotoData ? '' : esc(inisial(s.nama))}<span class="badge-ok ${err ? 'err' : ''}"><span class="ms">${err ? 'close' : 'check'}</span></span></div>
     <div><div class="row gap wrap">${kelasPill(s.kelas)}</div><h2>${esc(s.nama)}</h2>
     <div class="small muted">NIS: <b class="mono">${esc(s.nis)}</b>${s.walas ? ` • Wali Kelas: <b>${esc(s.walas)}</b>` : ''}</div></div></div>`;
 }
@@ -697,10 +748,15 @@ function ekspor(jenis) {
   const kelas = jenis === 'bulanan' ? $('blKelas').value : '';
   modal('<div class="empty"><div class="spinner dark"></div><p>Menyiapkan file Excel…</p></div>');
   call('apiEkspor', S.token, jenis, param, kelas).then((d) => {
+    // File dikirim server sebagai base64 → dibuat jadi file unduhan di browser
+    const bin = atob(d.base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([bytes], { type: d.mime }));
     modal(`<div class="center"><div class="icon-tile green lg" style="margin:0 auto"><span class="ms">table_view</span></div>
-      <h2 class="mt">File siap diunduh</h2><p class="muted small mt">${esc(d.nama)}</p>
+      <h2 class="mt">File siap diunduh</h2><p class="muted small mt">${esc(d.nama)} · ${Math.max(1, Math.round(bytes.length / 1024))} KB</p>
       <div class="modal-actions" style="justify-content:center"><button class="btn btn-ghost" onclick="tutupModal()">Tutup</button>
-      <a class="btn btn-primary" href="${esc(d.url)}" target="_blank" onclick="setTimeout(tutupModal,300)"><span class="ms">download</span> Unduh .xlsx</a></div></div>`);
+      <a class="btn btn-primary" href="${url}" download="${esc(d.nama)}" onclick="setTimeout(tutupModal,300)"><span class="ms">download</span> Unduh .xlsx</a></div></div>`);
   }).catch((e) => { tutupModal(); gagal(e); });
 }
 
@@ -965,9 +1021,18 @@ function formSiswa(s) {
           <label class="field"><span>Email walas (untuk notifikasi)</span><input id="fsEmail" type="email" value="${esc(s.emailWalas)}"></label>
         </div></div>
       <div class="card" style="box-shadow:none"><h3><span class="ms">photo_camera</span> Foto</h3>
-        <div class="row gap mt"><div class="avatar xl soft" id="fsPrev" style="${s.foto ? `background-image:url('${esc(s.foto)}')` : ''}">${s.foto ? '' : esc(inisial(s.nama || '?'))}</div>
-          <label class="btn btn-outline"><span class="ms">upload</span> Pilih foto<input type="file" accept="image/*" hidden id="fsFoto"></label>
-          <small class="muted">Dikompres otomatis ke 400 px</small></div></div>
+        <div class="foto-upload mt">
+          <div class="avatar xl soft" id="fsPrev"${s.foto ? ` data-foto="${esc(s.foto)}" data-foto-size="besar"` : ''}>${esc(inisial(s.nama || '?'))}</div>
+          <label class="drop-zone grow" id="fsZona">
+            <input type="file" accept="image/jpeg,image/png,image/webp" hidden id="fsFoto">
+            <span class="ms">cloud_upload</span>
+            <b>Klik untuk pilih foto dari komputer</b>
+            <small class="muted">atau seret &amp; lepas file ke sini · JPG, PNG, WEBP · maks ${FOTO_MAKS_MB} MB</small>
+            <small class="muted">Otomatis diperkecil ke 400 px sebelum dikirim</small>
+          </label>
+        </div>
+        <div class="row gap mt" id="fsFotoInfo" hidden></div>
+        ${s.foto ? '<button type="button" class="btn btn-ghost sm mt" id="fsHapusFoto"><span class="ms">delete</span> Hapus foto</button>' : ''}</div>
       ${baru ? '<p class="small muted"><span class="ms" style="font-size:16px">qr_code_2</span> Kode barcode unik dibuat otomatis saat disimpan. Sandi awal portal siswa = NIS.</p>' : `
       <div class="card" style="box-shadow:none"><h3><span class="ms">qr_code_2</span> Barcode &amp; Akun</h3>
         <div class="row gap wrap mt"><div style="background:#fff;padding:8px;border-radius:10px;border:1px solid var(--border)"><svg id="fsBarcode"></svg></div>
@@ -981,17 +1046,40 @@ function formSiswa(s) {
     $('fsBarcodeBaru').onclick = () => aksiSiswa(s, 'barcodeBaru');
     $('fsReset').onclick = () => aksiSiswa(s, 'resetSandi');
   }
-  $('fsFoto').onchange = (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    kompresGambar(f, 400, 0.82).then((r) => { foto = r; $('fsPrev').style.backgroundImage = `url('${r.dataUrl}')`; $('fsPrev').textContent = ''; }).catch(gagal);
+  let hapusFoto = false;
+  const pakaiFile = (f) => {
+    const salah = cekFileFoto(f);
+    if (salah) { toast('error', 'Foto tidak bisa dipakai', salah); return; }
+    $('fsFotoInfo').hidden = false;
+    $('fsFotoInfo').innerHTML = '<span class="spinner dark" style="width:16px;height:16px;border-width:2px"></span><small class="muted">Memproses foto…</small>';
+    Promise.all([kompresGambar(f, 400, 0.82), kompresGambar(f, 96, 0.72)]).then(([besar, kecil]) => {
+      foto = { base64: besar.base64, mime: besar.mime, mini: kecil.dataUrl };
+      hapusFoto = false;
+      const prev = $('fsPrev');
+      prev.dataset.fotoOk = '1';
+      pasangFoto(prev, besar.dataUrl);
+      $('fsFotoInfo').innerHTML = `<span class="pill pill-hadir"><i class="dot"></i>Siap disimpan</span><small class="muted">${esc(f.name)} · ${(f.size / 1048576).toFixed(2)} MB → ${Math.round(besar.base64.length * 0.75 / 1024)} KB</small>`;
+    }).catch((err) => { $('fsFotoInfo').hidden = true; gagal(err); });
+  };
+  $('fsFoto').onchange = (e) => { pakaiFile(e.target.files[0]); e.target.value = ''; };
+  const zona = $('fsZona');
+  ['dragenter', 'dragover'].forEach((ev) => zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.add('aktif'); }));
+  ['dragleave', 'drop'].forEach((ev) => zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.remove('aktif'); }));
+  zona.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) pakaiFile(e.dataTransfer.files[0]); });
+  if ($('fsHapusFoto')) $('fsHapusFoto').onclick = () => {
+    foto = null; hapusFoto = true;
+    const prev = $('fsPrev');
+    prev.style.backgroundImage = ''; prev.classList.add('soft'); prev.textContent = inisial(s.nama || '?');
+    $('fsFotoInfo').hidden = false;
+    $('fsFotoInfo').innerHTML = '<span class="pill pill-alpa"><i class="dot"></i>Foto akan dihapus saat disimpan</span>';
   };
   $('fsSimpan').onclick = () => {
     const obj = { id: s.id, nis: $('fsNis').value.trim(), nama: $('fsNama').value.trim(), kelas: $('fsKelas').value.trim(),
-      walas: $('fsWalas').value.trim(), emailWalas: $('fsEmail').value.trim(), aktif: $('fsAktif').checked };
+      walas: $('fsWalas').value.trim(), emailWalas: $('fsEmail').value.trim(), aktif: $('fsAktif').checked, hapusFoto: hapusFoto };
     if (!obj.nis || !obj.nama || !obj.kelas) return toast('warn', 'Lengkapi data', 'NIS, nama, dan kelas wajib diisi.');
     sibuk($('fsSimpan'), true, 'Menyimpan…');
-    call('apiSiswaSimpan', S.token, obj, foto ? { base64: foto.base64, mime: foto.mime } : null).then((r) => {
+    call('apiSiswaSimpan', S.token, obj, foto).then((r) => {
+      if (foto || hapusFoto) { FOTO_CACHE.mini.delete(r.id); FOTO_CACHE.besar.delete(r.id); }
       tutupModal();
       toast('sukses', baru ? 'Siswa ditambahkan' : 'Data diperbarui', baru ? `Kode barcode: ${r.kode}` : obj.nama);
       muatSiswa();
@@ -1014,7 +1102,7 @@ function kartuHtml(s) {
   const logo = S.app.logo ? `<img src="${S.app.logo}">` : '<span class="ms">school</span>';
   return `<div class="id-card">
     <div class="id-top"><div class="lg">${logo}</div><div><b>${esc(S.app.namaSekolah || 'SMA Triguna 1956 Jakarta')}</b><small>KARTU PRESENSI SISWA</small></div></div>
-    <div class="id-body"><div class="id-photo" style="${s.foto ? `background-image:url('${esc(s.foto)}')` : ''}">${s.foto ? '' : esc(inisial(s.nama))}</div>
+    <div class="id-body"><div class="id-photo"${s.foto ? ` data-foto="${esc(s.foto)}" data-foto-size="besar"` : ''}>${esc(inisial(s.nama))}</div>
       <div class="id-info"><div class="nm">${esc(s.nama)}</div><div class="meta">NIS ${esc(s.nis)} • ${esc(s.kelas)}</div><svg class="bc" data-kode="${esc(s.kode)}"></svg></div></div>
     <div class="id-foot">Kartu pribadi — tidak dapat dipindahtangankan</div></div>`;
 }
@@ -1043,7 +1131,10 @@ function bukaCetak(terpilih, daftar) {
   $('ckCetak').onclick = () => {
     $('printArea').innerHTML = `<div class="print-sheet">${list.map(kartuHtml).join('')}</div>`;
     gambarBarcode($('printArea'));
-    setTimeout(() => window.print(), 400);
+    const btn = $('ckCetak');
+    sibuk(btn, true, 'Memuat foto…');
+    // Tunggu semua foto siswa termuat sebelum jendela cetak dibuka
+    isiFoto($('printArea')).then(() => { sibuk(btn, false); setTimeout(() => window.print(), 300); });
   };
 }
 
@@ -1245,8 +1336,10 @@ function muatBeranda() {
     const p = d.profil;
     $('psNama').textContent = p.nama;
     $('psInfo').textContent = `NIS ${p.nis} • ${p.kelas}${p.walas ? ' • Walas ' + p.walas : ''}`;
-    $('psFoto').style.backgroundImage = p.foto ? `url('${p.foto}')` : '';
-    $('psFoto').textContent = p.foto ? '' : inisial(p.nama);
+    $('psFoto').style.backgroundImage = '';
+    $('psFoto').textContent = inisial(p.nama);
+    delete $('psFoto').dataset.fotoOk;
+    if (p.foto) { $('psFoto').dataset.foto = p.foto; $('psFoto').dataset.fotoSize = 'besar'; isiFoto(); }
     $('psSandiAwal').hidden = !p.sandiAwal;
     const h = d.hariIni;
     $('psHariIni').innerHTML = `<div><div class="eyebrow">HARI INI • MASUK</div><div class="big">${jm(h.masuk)}</div></div>
@@ -1272,6 +1365,8 @@ function muatBeranda() {
 function pilihSurat(input) {
   const f = input.files[0];
   if (!f) return;
+  const salah = cekFileFoto(f, 10);
+  if (salah) { input.value = ''; toast('error', 'Foto surat tidak bisa dipakai', salah); return; }
   $('ajPreview').innerHTML = '<div class="spinner dark"></div><small class="muted">Mengompres foto…</small>';
   kompresGambar(f, 1400, 0.72).then((r) => {
     S.ps.surat = r;

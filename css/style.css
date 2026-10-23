@@ -640,3 +640,11 @@ select { padding-right: 30px; appearance: none; background-image: url("data:imag
 .mon-dialog { background: var(--surface); color: var(--text); border-radius: 24px; box-shadow: var(--sh-3); padding: 28px; width: 100%; max-width: 440px; }
 .mon-dialog.center { text-align: center; }
 .mon-page .loader { z-index: 400; }
+
+/* ── 21. UNGGAH FOTO SISWA ── */
+.foto-upload { display: flex; gap: 16px; align-items: stretch; }
+.foto-upload .avatar.xl { width: 96px; height: 96px; font-size: 30px; align-self: center; box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--border); }
+.drop-zone { border: 2px dashed var(--border); border-radius: 14px; background: var(--surface-soft); padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
+.drop-zone .ms { font-size: 30px; color: var(--primary); }
+.drop-zone:hover, .drop-zone.aktif { border-color: var(--primary); background: var(--izin-bg); }
+@media (max-width: 640px) { .foto-upload { flex-direction: column; } }
