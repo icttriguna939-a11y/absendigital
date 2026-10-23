@@ -10,6 +10,7 @@
  */
 
 const API_TIMEOUT_MS = 60000;       // permintaan biasa
+const API_TIMEOUT_SCAN_MS = 25000;  // scan: jangan biarkan antrean tertahan lama
 const API_TIMEOUT_UNGGAH_MS = 120000; // permintaan berisi foto
 
 /** URL /exec yang dibaca dari js/config.js (spasi/kutip berlebih dibuang). */
@@ -40,7 +41,8 @@ async function call(action, ...args) {
   }
   const body = JSON.stringify({ action, args });
   const ctrl = new AbortController();
-  const batas = setTimeout(() => ctrl.abort(), body.length > 200000 ? API_TIMEOUT_UNGGAH_MS : API_TIMEOUT_MS);
+  const lama = /^api(Kiosk)?Scan$/.test(action) ? API_TIMEOUT_SCAN_MS : body.length > 200000 ? API_TIMEOUT_UNGGAH_MS : API_TIMEOUT_MS;
+  const batas = setTimeout(() => ctrl.abort(), lama);
 
   let res;
   try {
@@ -131,18 +133,20 @@ terapkanBrand(brandBaca());
 
 /* ============================================================
  * PEMINDAI BARCODE USB — dipakai Stasiun Scan & Layar Monitor
- * Pemindai bekerja seperti keyboard yang mengetik sangat cepat. Kode diproses bila:
- *  - pemindai mengirim Enter atau Tab setelah kode, ATAU
- *  - ketikan cepat (gaya pemindai) berhenti 0,35 detik tanpa Enter/Tab
- *    (untuk pemindai yang belum diatur mengirim akhiran Enter).
+ * Pemindai bekerja seperti keyboard. Kode diproses bila SALAH SATU terpenuhi:
+ *  1. isi kolom sudah membentuk kode kartu lengkap (TRG- + 8 huruf/angka) → langsung,
+ *     tidak peduli kecepatan pemindai atau ada/tidaknya Enter;
+ *  2. pemindai mengirim Enter atau Tab;
+ *  3. ketikan berhenti 0,6 detik dan isinya cukup panjang (kode format lain).
  * ============================================================ */
+const POLA_KODE_KARTU = /^TRG-[A-Z0-9]{8}$/i;
+
 function pasangPemindai(input, onKode) {
-  let jeda = null, terakhir = 0, cepat = 0;
+  let jeda = null;
   const kirim = () => {
     clearTimeout(jeda);
-    const v = input.value.trim();
+    const v = input.value.trim().toUpperCase();
     input.value = '';
-    cepat = 0;
     if (v) onKode(v);
   };
   input.addEventListener('keydown', (e) => {
@@ -151,11 +155,10 @@ function pasangPemindai(input, onKode) {
     }
   });
   input.addEventListener('input', () => {
-    const kini = performance.now();
-    cepat = kini - terakhir < 60 ? cepat + 1 : 0;
-    terakhir = kini;
     clearTimeout(jeda);
-    jeda = setTimeout(() => { if (cepat >= 3 && input.value.trim().length >= 4) kirim(); }, 350);
+    const v = input.value.trim();
+    if (POLA_KODE_KARTU.test(v)) { jeda = setTimeout(kirim, 40); return; }   // kode lengkap → proses
+    jeda = setTimeout(() => { if (input.value.trim().length >= 8) kirim(); }, 600);
   });
   return kirim;
 }

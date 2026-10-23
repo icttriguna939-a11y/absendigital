@@ -531,6 +531,8 @@ function prosesScan(kode, perangkat, modeKhusus) {
   kode = String(kode || '').trim();
   if (!kode) return Promise.resolve();
   const mode = modeKhusus || S.scan.mode;
+  // Tampilkan tanda "sedang diproses" SEKETIKA, walaupun masih ada scan sebelumnya di antrean
+  $('scHasil').innerHTML = `<div class="empty"><div class="spinner dark"></div><p>Memverifikasi <b class="mono">${esc(kode)}</b>…</p></div>`;
   S.scan.antrean = S.scan.antrean.then(() => {
     $('scHasil').innerHTML = `<div class="empty"><div class="spinner dark"></div><p>Memverifikasi <b class="mono">${esc(kode)}</b>…</p></div>`;
     return call('apiScan', S.token, kode, mode, perangkat)
